@@ -23,6 +23,7 @@
 SET(TESTS
   pq_condition
   message_queue
+  exchange
 )
 
 SET(ALL_PARALLEL_TESTS)

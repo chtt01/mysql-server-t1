@@ -217,6 +217,10 @@ TEST_F(MessageQueueTest, ReceiveMsgError) {
   char *datap;
   uint32 receiveBytes;
 
+  // no data in msg test
+  ret = mqHandle.receive((void **)&datap, &receiveBytes);
+  EXPECT_EQ(MQ_WOULD_BLOCK, ret);
+
   // send data to msg queue
   char data[5] = "abcd";
   mqHandle.send((void*)data, 5, false);
