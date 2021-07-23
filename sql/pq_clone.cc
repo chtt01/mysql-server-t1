@@ -527,7 +527,7 @@ TABLE_LIST *copy_table(THD *thd, TABLE_LIST *src, SELECT_LEX *select, SELECT_LEX
       is_infoschema_db(ptr->db, ptr->db_length)) {
     dd::info_schema::convert_table_name_case(
         const_cast<char *>(ptr->db), const_cast<char *>(ptr->table_name));
-    ST_SCHEMA_TABLE *schema_table;
+    ST_SCHEMA_TABLE *schema_table = nullptr;
     if (!ptr->is_system_view) {
       schema_table = find_schema_table(thd, ptr->table_name);
       if (schema_table) {
@@ -622,6 +622,7 @@ bool init_table_field_space(THD *thd, TABLE_LIST *src, TABLE_LIST *des) {
 
 bool copy_leaf_tables(THD *thd, SELECT_LEX *orig, SELECT_LEX *dest_select) {
   TABLE_LIST *last = nullptr;
+  dest_select->leaf_tables = nullptr;
   for (TABLE_LIST *tbl_list = orig->leaf_tables; tbl_list != nullptr; tbl_list = tbl_list->next_leaf) {
     TABLE_LIST *tl = copy_table(thd, tbl_list, dest_select, orig);
     if (tl == nullptr) {
@@ -791,10 +792,14 @@ bool copy_all_table_list(THD *thd, SELECT_LEX *orig, SELECT_LEX *dest_select) {
   return false;
 }
 SELECT_LEX *pq_dup_select(THD *thd, SELECT_LEX *orig) {
-  Item *item, *new_item;
-  Item *where, *having;
-  ORDER *group, *group_new;
-  ORDER *order, *order_new;
+  Item *item = nullptr;
+  Item *new_item = nullptr;
+  Item *where = nullptr;
+  Item *having = nullptr;
+  ORDER *group = nullptr;
+  ORDER *group_new = nullptr;
+  ORDER *order = nullptr;
+  ORDER *order_new = nullptr;
   SELECT_LEX *select = nullptr;
   SQL_I_List<ORDER> orig_list;
 
