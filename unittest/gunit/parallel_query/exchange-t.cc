@@ -77,7 +77,20 @@ TEST_F(ExchangeNoSortTest, InitTest){
   
 }
 
+class MockExchange_nosort : public Exchange_nosort{
+  public : 
+    MOCK_METHOD2(read_next,bool(void **, uint32 *));
+    MOCK_METHOD3(covert_mq_data_to_record, bool(uchar*,int,uchar*));
+
+    MockExchange_nosort(THD *thd, TABLE *table, int workers, int ref_length, bool stab_output)
+    : Exchange_nosort(thd,table,workers,ref_length,stab_output){}
+
+    virtual ~MockExchange_nosort() {}
+};
+
 TEST_F(ExchangeNoSortTest, readRecord){
+  using ::testing::_;
+  using ::testing::Return;
   List<Field> fieldList;
   Fake_TABLE_SHARE  dummyShare(1);
   Mock_dd_field_longlong id;
@@ -92,12 +105,21 @@ TEST_F(ExchangeNoSortTest, readRecord){
   int workers = 2;
   int refLength = 0;
   bool stabOutPut = false;
-  Exchange_nosort exchangeNoSort(thd, &table, workers, refLength, stabOutPut);
-  exchangeNoSort.init();
+//  MockExchange_nosort MockExchangeNoSort(thd, &table, workers, refLength, stabOutPut);
+//  MockExchangeNoSort.init();
+
+  MockExchange_nosort *mockExchangeNoSort = new MockExchange_nosort(thd, &table, workers, refLength, stabOutPut);
   
-//  bool ret;
-//  ret = exchangeNoSort.read_mq_record();
-//  EXPECT_EQ(false, ret);
+  
+  ON_CALL(*mockExchangeNoSort,read_next(_, _)).WillByDefault(Return(true));
+  EXPECT_CALL(*mockExchangeNoSort,read_next(_, _)).Times(1);
+
+  ON_CALL(*mockExchangeNoSort,covert_mq_data_to_record(_, _, _)).WillByDefault(Return(true));
+  EXPECT_CALL(*mockExchangeNoSort,covert_mq_data_to_record(_, _, _)).Times(1);
+
+  bool ret;
+  ret = mockExchangeNoSort->read_mq_record();
+  EXPECT_EQ(true, ret);
 
 }
 
