@@ -887,6 +887,8 @@ public:
     explicit PlanReadyPQCheck(SELECT_LEX *select_lex_arg)
         : PQCheck(select_lex_arg),
           join(select_lex_arg->join) {}
+    
+    ~PlanReadyPQCheck() {}
 
     bool suite_for_parallel_query() override;
 
