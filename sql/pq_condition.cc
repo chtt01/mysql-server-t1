@@ -788,7 +788,7 @@ bool suite_for_parallel_query(SELECT_LEX *select) {
 
 bool suite_for_parallel_query(JOIN *join) {
   if ((join->best_read < join->thd->variables.parallel_cost_threshold) ||
-    (join->primary_tables == join->const_tables/* || primary_tables > 1*/) ||
+    (join->primary_tables == join->const_tables) ||
     (join->select_distinct || join->select_count)  ||
     (join->all_fields.elements > MAX_FIELDS) ||
     (join->rollup.state != ROLLUP::State::STATE_NONE) ||

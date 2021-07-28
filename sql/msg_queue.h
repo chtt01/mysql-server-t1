@@ -1,7 +1,8 @@
 #ifndef _MESSAGE_QUEUE_PQ
 #define _MESSAGE_QUEUE_PQ
 
-/* Copyright (c) 2020, Huawei and/or its affiliates. All rights reserved.
+/* Copyright (c) 2007, 2020, Oracle and/or its affiliates. All rights reserved.
+   Copyright (c) 2021, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -133,8 +134,6 @@ class MQ_event {
  public:
   THD *PQ_caller;
   std::atomic<bool> latch;
-  // std::mutex m_mutex;
-  // std::condition_variable m_cond;
 
  public:
   MQ_event(THD *thd) : PQ_caller(thd), latch(false) {}

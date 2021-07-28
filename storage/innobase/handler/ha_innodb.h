@@ -438,8 +438,6 @@ class ha_innobase : public handler {
   @retval 0 on success */
   int parallel_scan_init(void *&scan_ctx, size_t &num_threads) override;
 
-  //void clone_consistent_snapshop(void *scan_ctx) override;
-
   int pq_leader_range_select_scan_init(uint keyno, void *&pq_ctx, uint &n_threads);
 
   int pq_leader_skip_scan_select_scan_init(uint keyno, void *&pq_ctx, uint n_threads);  

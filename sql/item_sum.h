@@ -2,7 +2,7 @@
 #define ITEM_SUM_INCLUDED
 
 /* Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
-
+   Copyright (c) 2021, Huawei Technologies Co., Ltd.
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
    as published by the Free Software Foundation.
@@ -1045,7 +1045,6 @@ class Item_sum_sum : public Item_sum_num {
   const char *func_name() const override { return "sum"; }
   Item *copy_or_same(THD *thd) override;
   Item *pq_clone(THD *thd, SELECT_LEX *select) override;
-  //bool pq_copy_from(THD *thd, SELECT_LEX *select, Item *item) override;
   Item_sum *pq_rebuild_sum_func(THD *thd, SELECT_LEX *select, Item *item) override;
 };
 
