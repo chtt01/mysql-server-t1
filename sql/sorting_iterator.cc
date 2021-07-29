@@ -77,8 +77,7 @@ SortFileIndirectIterator::SortFileIndirectIterator(THD *thd, TABLE *table,
       m_ref_pos(table->file->ref),
       m_ignore_not_found_rows(ignore_not_found_rows),
       m_using_cache(request_cache),
-      m_ref_length(table->file->ref_length)
-    {}
+      m_ref_length(table->file->ref_length) {}
 
 SortFileIndirectIterator::~SortFileIndirectIterator() {
   (void)table()->file->ha_index_or_rnd_end();
@@ -179,7 +178,6 @@ int SortFileIndirectIterator::UncachedRead() {
       if (m_examined_rows != nullptr) {
         ++*m_examined_rows;
       }
-
       return 0;
     }
     /* The following is extremely unlikely to happen */
@@ -407,8 +405,7 @@ SortBufferIndirectIterator::SortBufferIndirectIterator(
       m_ref_length(table->file->ref_length),
       m_examined_rows(examined_rows),
       m_record(table->record[0]),
-      m_ignore_not_found_rows(ignore_not_found_rows)
-      {}
+      m_ignore_not_found_rows(ignore_not_found_rows) {}
 
 SortBufferIndirectIterator::~SortBufferIndirectIterator() {
   m_sort_result->sorted_result.reset();
@@ -480,8 +477,7 @@ SortingIterator::SortingIterator(THD *thd, QEP_TAB *qep_tab, Filesort *filesort,
       m_filesort(filesort),
       m_qep_tab(qep_tab),
       m_source_iterator(move(source)),
-      m_examined_rows(examined_rows)
-    {}
+      m_examined_rows(examined_rows) {}
 
 SortingIterator::~SortingIterator() {
   ReleaseBuffers();

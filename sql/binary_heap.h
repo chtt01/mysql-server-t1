@@ -1,8 +1,9 @@
 #ifndef MYSQL_BINARY_HEAP_H
 #define MYSQL_BINARY_HEAP_H
 
-/* Copyright (c) 2020, Huawei and/or its affiliates. All rights reserved.
+/* Copyright (c) 2020, Oracle and/or its affiliates. All Rights Reserved.
    Copyright (c) 2021, Huawei Technologies Co., Ltd.
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
    as published by the Free Software Foundation.
