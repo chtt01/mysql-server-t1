@@ -25,6 +25,7 @@ SET(TESTS
   pq_copy_table_list
   pq_condition
   message_queue
+  exchange
 )
 
 SET(ALL_PARALLEL_TESTS)

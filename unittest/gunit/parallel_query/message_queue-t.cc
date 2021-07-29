@@ -211,12 +211,16 @@ TEST_F(MessageQueueTest, ReceiveMsgError) {
   mq.m_ring_size = ringBufferLen;
   mq.m_sender_event = &send_event;
   mq.m_receiver_event = &receiver_event;
-  MQueue_handle mqHandle(&mq,handleBufferLen);
+  MQueue_handle mqHandle(&mq, handleBufferLen);
   mqHandle.init_mqueue_handle(thd);
 
 
   char *datap;
   uint32 receiveBytes;
+
+  // no data in msg test
+  ret = mqHandle.receive((void **)&datap, &receiveBytes);
+  EXPECT_EQ(MQ_WOULD_BLOCK, ret);
 
   // send data to msg queue
   char data[5] = "abcd";
