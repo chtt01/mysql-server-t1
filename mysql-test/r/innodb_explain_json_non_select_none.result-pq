@@ -38,12 +38,61 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1     WHERE a < 10;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "0.55"
+    } /* cost_info */,
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 3,
+      "rows_produced_per_join": 1,
+      "filtered": "33.33",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.45",
+        "eval_cost": "0.10",
+        "prefix_cost": "0.55",
+        "data_read_per_join": "16"
+      } /* cost_info */,
+      "used_columns": [
+        "a"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "0.55"
+        } /* cost_info */,
+        "table": {
+          "select_id": 2,
+          "table_name": "t1",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 3,
+          "rows_produced_per_join": 1,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "0.45",
+            "eval_cost": "0.10",
+            "prefix_cost": "0.55",
+            "data_read_per_join": "8"
+          } /* cost_info */,
+          "used_columns": [
+            "a"
+          ] /* used_columns */,
+          "attached_condition": "(`test`.`t1`.`a` < 10)"
+        } /* table */
+      } /* query_block */
+    } /* table */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`a` AS `a` from `test`.`t1` where (`test`.`t1`.`a` < 10)
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	2
+Handler_read_rnd_next	4
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_first	1
@@ -89,12 +138,61 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1 WHERE a < 10;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "0.55"
+    } /* cost_info */,
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 3,
+      "rows_produced_per_join": 1,
+      "filtered": "33.33",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.45",
+        "eval_cost": "0.10",
+        "prefix_cost": "0.55",
+        "data_read_per_join": "16"
+      } /* cost_info */,
+      "used_columns": [
+        "a"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "0.55"
+        } /* cost_info */,
+        "table": {
+          "select_id": 2,
+          "table_name": "t1",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 3,
+          "rows_produced_per_join": 1,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "0.45",
+            "eval_cost": "0.10",
+            "prefix_cost": "0.55",
+            "data_read_per_join": "8"
+          } /* cost_info */,
+          "used_columns": [
+            "a"
+          ] /* used_columns */,
+          "attached_condition": "(`test`.`t1`.`a` < 10)"
+        } /* table */
+      } /* query_block */
+    } /* table */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`a` AS `a` from `test`.`t1` where (`test`.`t1`.`a` < 10)
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	2
+Handler_read_rnd_next	4
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	3
@@ -153,12 +251,61 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1          WHERE a = 1;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "0.55"
+    } /* cost_info */,
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 3,
+      "rows_produced_per_join": 1,
+      "filtered": "33.33",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.45",
+        "eval_cost": "0.10",
+        "prefix_cost": "0.55",
+        "data_read_per_join": "16"
+      } /* cost_info */,
+      "used_columns": [
+        "a"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "0.55"
+        } /* cost_info */,
+        "table": {
+          "select_id": 2,
+          "table_name": "t1",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 3,
+          "rows_produced_per_join": 1,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "0.45",
+            "eval_cost": "0.10",
+            "prefix_cost": "0.55",
+            "data_read_per_join": "8"
+          } /* cost_info */,
+          "used_columns": [
+            "a"
+          ] /* used_columns */,
+          "attached_condition": "(`test`.`t1`.`a` = 1)"
+        } /* table */
+      } /* query_block */
+    } /* table */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`a` AS `a` from `test`.`t1` where (`test`.`t1`.`a` = 1)
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	2
+Handler_read_rnd_next	4
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	1
@@ -245,46 +392,71 @@ EXPLAIN
     "cost_info": {
       "query_cost": "1.10"
     } /* cost_info */,
-    "nested_loop": [
-      {
-        "table": {
-          "table_name": "t1",
-          "access_type": "ALL",
-          "rows_examined_per_scan": 3,
-          "rows_produced_per_join": 1,
-          "filtered": "33.33",
-          "cost_info": {
-            "read_cost": "0.45",
-            "eval_cost": "0.10",
-            "prefix_cost": "0.55",
-            "data_read_per_join": "8"
-          } /* cost_info */,
-          "used_columns": [
-            "a"
-          ] /* used_columns */,
-          "attached_condition": "(`test`.`t1`.`a` = 1)"
-        } /* table */
-      },
-      {
-        "table": {
-          "table_name": "t2",
-          "access_type": "ALL",
-          "rows_examined_per_scan": 3,
-          "rows_produced_per_join": 3,
-          "filtered": "100.00",
-          "using_join_buffer": "Block Nested Loop",
-          "cost_info": {
-            "read_cost": "0.25",
-            "eval_cost": "0.30",
-            "prefix_cost": "1.10",
-            "data_read_per_join": "24"
-          } /* cost_info */,
-          "used_columns": [
-            "b"
-          ] /* used_columns */
-        } /* table */
-      }
-    ] /* nested_loop */
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 3,
+      "rows_produced_per_join": 1,
+      "filtered": "33.33",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.45",
+        "eval_cost": "0.10",
+        "prefix_cost": "0.55",
+        "data_read_per_join": "16"
+      } /* cost_info */,
+      "used_columns": [
+        "a",
+        "b"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "1.10"
+        } /* cost_info */,
+        "nested_loop": [
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t1",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 3,
+              "rows_produced_per_join": 1,
+              "filtered": "33.33",
+              "cost_info": {
+                "read_cost": "0.45",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.55",
+                "data_read_per_join": "8"
+              } /* cost_info */,
+              "used_columns": [
+                "a"
+              ] /* used_columns */,
+              "attached_condition": "(`test`.`t1`.`a` = 1)"
+            } /* table */
+          },
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t2",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 3,
+              "rows_produced_per_join": 3,
+              "filtered": "100.00",
+              "using_join_buffer": "hash join",
+              "cost_info": {
+                "read_cost": "0.25",
+                "eval_cost": "0.30",
+                "prefix_cost": "1.10",
+                "data_read_per_join": "24"
+              } /* cost_info */,
+              "used_columns": [
+                "b"
+              ] /* used_columns */
+            } /* table */
+          }
+        ] /* nested_loop */
+      } /* query_block */
+    } /* table */
   } /* query_block */
 }
 Warnings:
@@ -380,46 +552,71 @@ EXPLAIN
     "cost_info": {
       "query_cost": "1.10"
     } /* cost_info */,
-    "nested_loop": [
-      {
-        "table": {
-          "table_name": "t11",
-          "access_type": "ALL",
-          "rows_examined_per_scan": 3,
-          "rows_produced_per_join": 1,
-          "filtered": "33.33",
-          "cost_info": {
-            "read_cost": "0.45",
-            "eval_cost": "0.10",
-            "prefix_cost": "0.55",
-            "data_read_per_join": "8"
-          } /* cost_info */,
-          "used_columns": [
-            "a"
-          ] /* used_columns */,
-          "attached_condition": "(`test`.`t11`.`a` = 1)"
-        } /* table */
-      },
-      {
-        "table": {
-          "table_name": "t2",
-          "access_type": "ALL",
-          "rows_examined_per_scan": 3,
-          "rows_produced_per_join": 3,
-          "filtered": "100.00",
-          "using_join_buffer": "Block Nested Loop",
-          "cost_info": {
-            "read_cost": "0.25",
-            "eval_cost": "0.30",
-            "prefix_cost": "1.10",
-            "data_read_per_join": "24"
-          } /* cost_info */,
-          "used_columns": [
-            "b"
-          ] /* used_columns */
-        } /* table */
-      }
-    ] /* nested_loop */
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 3,
+      "rows_produced_per_join": 1,
+      "filtered": "33.33",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.45",
+        "eval_cost": "0.10",
+        "prefix_cost": "0.55",
+        "data_read_per_join": "16"
+      } /* cost_info */,
+      "used_columns": [
+        "a",
+        "b"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "1.10"
+        } /* cost_info */,
+        "nested_loop": [
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t11",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 3,
+              "rows_produced_per_join": 1,
+              "filtered": "33.33",
+              "cost_info": {
+                "read_cost": "0.45",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.55",
+                "data_read_per_join": "8"
+              } /* cost_info */,
+              "used_columns": [
+                "a"
+              ] /* used_columns */,
+              "attached_condition": "(`test`.`t11`.`a` = 1)"
+            } /* table */
+          },
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t2",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 3,
+              "rows_produced_per_join": 3,
+              "filtered": "100.00",
+              "using_join_buffer": "hash join",
+              "cost_info": {
+                "read_cost": "0.25",
+                "eval_cost": "0.30",
+                "prefix_cost": "1.10",
+                "data_read_per_join": "24"
+              } /* cost_info */,
+              "used_columns": [
+                "b"
+              ] /* used_columns */
+            } /* table */
+          }
+        ] /* nested_loop */
+      } /* query_block */
+    } /* table */
   } /* query_block */
 }
 Warnings:
@@ -878,7 +1075,7 @@ EXPLAIN
           "rows_examined_per_scan": 3,
           "rows_produced_per_join": 9,
           "filtered": "100.00",
-          "using_join_buffer": "Block Nested Loop",
+          "using_join_buffer": "hash join",
           "cost_info": {
             "read_cost": "0.25",
             "eval_cost": "0.90",
@@ -985,45 +1182,70 @@ EXPLAIN
     "cost_info": {
       "query_cost": "1.70"
     } /* cost_info */,
-    "nested_loop": [
-      {
-        "table": {
-          "table_name": "t11",
-          "access_type": "ALL",
-          "rows_examined_per_scan": 3,
-          "rows_produced_per_join": 3,
-          "filtered": "100.00",
-          "cost_info": {
-            "read_cost": "0.25",
-            "eval_cost": "0.30",
-            "prefix_cost": "0.55",
-            "data_read_per_join": "24"
-          } /* cost_info */,
-          "used_columns": [
-            "a"
-          ] /* used_columns */
-        } /* table */
-      },
-      {
-        "table": {
-          "table_name": "t2",
-          "access_type": "ALL",
-          "rows_examined_per_scan": 3,
-          "rows_produced_per_join": 9,
-          "filtered": "100.00",
-          "using_join_buffer": "Block Nested Loop",
-          "cost_info": {
-            "read_cost": "0.25",
-            "eval_cost": "0.90",
-            "prefix_cost": "1.70",
-            "data_read_per_join": "72"
-          } /* cost_info */,
-          "used_columns": [
-            "b"
-          ] /* used_columns */
-        } /* table */
-      }
-    ] /* nested_loop */
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 3,
+      "rows_produced_per_join": 3,
+      "filtered": "100.00",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.25",
+        "eval_cost": "0.30",
+        "prefix_cost": "0.55",
+        "data_read_per_join": "48"
+      } /* cost_info */,
+      "used_columns": [
+        "a",
+        "b"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "1.70"
+        } /* cost_info */,
+        "nested_loop": [
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t11",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 3,
+              "rows_produced_per_join": 3,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.25",
+                "eval_cost": "0.30",
+                "prefix_cost": "0.55",
+                "data_read_per_join": "24"
+              } /* cost_info */,
+              "used_columns": [
+                "a"
+              ] /* used_columns */
+            } /* table */
+          },
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t2",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 3,
+              "rows_produced_per_join": 9,
+              "filtered": "100.00",
+              "using_join_buffer": "hash join",
+              "cost_info": {
+                "read_cost": "0.25",
+                "eval_cost": "0.90",
+                "prefix_cost": "1.70",
+                "data_read_per_join": "72"
+              } /* cost_info */,
+              "used_columns": [
+                "b"
+              ] /* used_columns */
+            } /* table */
+          }
+        ] /* nested_loop */
+      } /* query_block */
+    } /* table */
   } /* query_block */
 }
 Warnings:
@@ -1056,7 +1278,7 @@ id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered
 1	UPDATE	t11	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
 2	DERIVED	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	No tables used
 Warnings:
-Note	1003	update `test`.`t1` `t11` join (/* select#2 */ select straight_join 1 AS `1`) `t12` set `test`.`t11`.`a` = (`test`.`t11`.`a` + 10)
+Note	1003	update `test`.`t1` `t11` join (/* select#2 */ select 1 AS `1`) `t12` set `test`.`t11`.`a` = (`test`.`t11`.`a` + 10)
 FLUSH STATUS;
 FLUSH TABLES;
 Variable_name	Value
@@ -1119,7 +1341,7 @@ EXPLAIN
   } /* query_block */
 }
 Warnings:
-Note	1003	update `test`.`t1` `t11` join (/* select#2 */ select straight_join 1 AS `1`) `t12` set `test`.`t11`.`a` = (`test`.`t11`.`a` + 10)
+Note	1003	update `test`.`t1` `t11` join (/* select#2 */ select 1 AS `1`) `t12` set `test`.`t11`.`a` = (`test`.`t11`.`a` + 10)
 FLUSH STATUS;
 FLUSH TABLES;
 Variable_name	Value
@@ -1276,46 +1498,71 @@ EXPLAIN
     "cost_info": {
       "query_cost": "1.10"
     } /* cost_info */,
-    "nested_loop": [
-      {
-        "table": {
-          "table_name": "t11",
-          "access_type": "ALL",
-          "rows_examined_per_scan": 3,
-          "rows_produced_per_join": 1,
-          "filtered": "33.33",
-          "cost_info": {
-            "read_cost": "0.45",
-            "eval_cost": "0.10",
-            "prefix_cost": "0.55",
-            "data_read_per_join": "8"
-          } /* cost_info */,
-          "used_columns": [
-            "a"
-          ] /* used_columns */,
-          "attached_condition": "(`test`.`t11`.`a` > 1)"
-        } /* table */
-      },
-      {
-        "table": {
-          "table_name": "t2",
-          "access_type": "ALL",
-          "rows_examined_per_scan": 3,
-          "rows_produced_per_join": 3,
-          "filtered": "100.00",
-          "using_join_buffer": "Block Nested Loop",
-          "cost_info": {
-            "read_cost": "0.25",
-            "eval_cost": "0.30",
-            "prefix_cost": "1.10",
-            "data_read_per_join": "24"
-          } /* cost_info */,
-          "used_columns": [
-            "b"
-          ] /* used_columns */
-        } /* table */
-      }
-    ] /* nested_loop */
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 3,
+      "rows_produced_per_join": 1,
+      "filtered": "33.33",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.45",
+        "eval_cost": "0.10",
+        "prefix_cost": "0.55",
+        "data_read_per_join": "16"
+      } /* cost_info */,
+      "used_columns": [
+        "a",
+        "b"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "1.10"
+        } /* cost_info */,
+        "nested_loop": [
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t11",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 3,
+              "rows_produced_per_join": 1,
+              "filtered": "33.33",
+              "cost_info": {
+                "read_cost": "0.45",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.55",
+                "data_read_per_join": "8"
+              } /* cost_info */,
+              "used_columns": [
+                "a"
+              ] /* used_columns */,
+              "attached_condition": "(`test`.`t11`.`a` > 1)"
+            } /* table */
+          },
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t2",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 3,
+              "rows_produced_per_join": 3,
+              "filtered": "100.00",
+              "using_join_buffer": "hash join",
+              "cost_info": {
+                "read_cost": "0.25",
+                "eval_cost": "0.30",
+                "prefix_cost": "1.10",
+                "data_read_per_join": "24"
+              } /* cost_info */,
+              "used_columns": [
+                "b"
+              ] /* used_columns */
+            } /* table */
+          }
+        ] /* nested_loop */
+      } /* query_block */
+    } /* table */
   } /* query_block */
 }
 Warnings:
@@ -1370,12 +1617,61 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1 WHERE a > 1 LIMIT 1;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "0.55"
+    } /* cost_info */,
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 3,
+      "rows_produced_per_join": 1,
+      "filtered": "33.33",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.45",
+        "eval_cost": "0.10",
+        "prefix_cost": "0.55",
+        "data_read_per_join": "16"
+      } /* cost_info */,
+      "used_columns": [
+        "a"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "0.55"
+        } /* cost_info */,
+        "table": {
+          "select_id": 2,
+          "table_name": "t1",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 3,
+          "rows_produced_per_join": 1,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "0.45",
+            "eval_cost": "0.10",
+            "prefix_cost": "0.55",
+            "data_read_per_join": "8"
+          } /* cost_info */,
+          "used_columns": [
+            "a"
+          ] /* used_columns */,
+          "attached_condition": "(`test`.`t1`.`a` > 1)"
+        } /* table */
+      } /* query_block */
+    } /* table */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`a` AS `a` from `test`.`t1` where (`test`.`t1`.`a` > 1) limit 1
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	2
+Handler_read_rnd_next	2
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	1
@@ -1619,11 +1915,70 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1 WHERE a < 3;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "0.71"
+    } /* cost_info */,
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 1,
+      "rows_produced_per_join": 1,
+      "filtered": "100.00",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.61",
+        "eval_cost": "0.10",
+        "prefix_cost": "0.71",
+        "data_read_per_join": "16"
+      } /* cost_info */,
+      "used_columns": [
+        "a",
+        "b"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "0.71"
+        } /* cost_info */,
+        "table": {
+          "select_id": 2,
+          "table_name": "t1",
+          "access_type": "range",
+          "possible_keys": [
+            "a"
+          ] /* possible_keys */,
+          "key": "a",
+          "used_key_parts": [
+            "a"
+          ] /* used_key_parts */,
+          "key_length": "5",
+          "rows_examined_per_scan": 1,
+          "rows_produced_per_join": 1,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "0.61",
+            "eval_cost": "0.10",
+            "prefix_cost": "0.71",
+            "data_read_per_join": "16"
+          } /* cost_info */,
+          "used_columns": [
+            "a",
+            "b"
+          ] /* used_columns */,
+          "attached_condition": "(`test`.`t1`.`a` < 3)"
+        } /* table */
+      } /* query_block */
+    } /* table */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`a` AS `a`,`test`.`t1`.`b` AS `b` from `test`.`t1` where (`test`.`t1`.`a` < 3)
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_key	4
+Handler_read_rnd_next	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_key	3
@@ -1679,12 +2034,71 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1 WHERE t1.a > 0 ORDER BY t1.a;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "0.35"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": false,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": 1,
+        "rows_produced_per_join": 1,
+        "filtered": "100.00",
+        "parallel_execute": "1 workers",
+        "cost_info": {
+          "read_cost": "0.25",
+          "eval_cost": "0.10",
+          "prefix_cost": "0.35",
+          "data_read_per_join": "16"
+        } /* cost_info */,
+        "used_columns": [
+          "a"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "select_id": 2,
+            "table_name": "t1",
+            "access_type": "index",
+            "possible_keys": [
+              "PRIMARY"
+            ] /* possible_keys */,
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "a"
+            ] /* used_key_parts */,
+            "key_length": "4",
+            "rows_examined_per_scan": 1,
+            "rows_produced_per_join": 1,
+            "filtered": "100.00",
+            "using_index": true,
+            "cost_info": {
+              "read_cost": "0.25",
+              "eval_cost": "0.10",
+              "prefix_cost": "0.35",
+              "data_read_per_join": "8"
+            } /* cost_info */,
+            "used_columns": [
+              "a"
+            ] /* used_columns */,
+            "attached_condition": "(`test`.`t1`.`a` > 0)"
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`a` AS `a` from `test`.`t1` where (`test`.`t1`.`a` > 0) order by `test`.`t1`.`a`
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	2
+Handler_read_rnd_next	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_key	2
@@ -1738,12 +2152,71 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1 WHERE t1.a > 0 ORDER BY t1.a;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "0.55"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": false,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": 3,
+        "rows_produced_per_join": 3,
+        "filtered": "100.00",
+        "parallel_execute": "1 workers",
+        "cost_info": {
+          "read_cost": "0.25",
+          "eval_cost": "0.30",
+          "prefix_cost": "0.55",
+          "data_read_per_join": "48"
+        } /* cost_info */,
+        "used_columns": [
+          "a"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "select_id": 2,
+            "table_name": "t1",
+            "access_type": "index",
+            "possible_keys": [
+              "PRIMARY"
+            ] /* possible_keys */,
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "a"
+            ] /* used_key_parts */,
+            "key_length": "4",
+            "rows_examined_per_scan": 3,
+            "rows_produced_per_join": 3,
+            "filtered": "100.00",
+            "using_index": true,
+            "cost_info": {
+              "read_cost": "0.25",
+              "eval_cost": "0.30",
+              "prefix_cost": "0.55",
+              "data_read_per_join": "24"
+            } /* cost_info */,
+            "used_columns": [
+              "a"
+            ] /* used_columns */,
+            "attached_condition": "(`test`.`t1`.`a` > 0)"
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`a` AS `a` from `test`.`t1` where (`test`.`t1`.`a` > 0) order by `test`.`t1`.`a`
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	2
+Handler_read_rnd_next	4
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	3
@@ -1892,15 +2365,67 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1 ORDER BY a ASC, b ASC LIMIT 1;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "1.25"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": true,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": 10,
+        "rows_produced_per_join": 10,
+        "filtered": "100.00",
+        "parallel_execute": "1 workers",
+        "cost_info": {
+          "read_cost": "0.25",
+          "eval_cost": "1.00",
+          "prefix_cost": "1.25",
+          "data_read_per_join": "160"
+        } /* cost_info */,
+        "used_columns": [
+          "a",
+          "b",
+          "c"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": true,
+          "table": {
+            "select_id": 2,
+            "table_name": "t1",
+            "access_type": "ALL",
+            "rows_examined_per_scan": 10,
+            "rows_produced_per_join": 10,
+            "filtered": "100.00",
+            "cost_info": {
+              "read_cost": "0.25",
+              "eval_cost": "1.00",
+              "prefix_cost": "1.25",
+              "data_read_per_join": "160"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "b",
+              "c"
+            ] /* used_columns */
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`a` AS `a`,`test`.`t1`.`b` AS `b`,`test`.`t1`.`c` AS `c` from `test`.`t1` order by `test`.`t1`.`a`,`test`.`t1`.`b` limit 1
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
-Handler_read_key	5
-Handler_read_rnd	1
+Handler_read_key	4
+Handler_read_rnd_next	11
 Sort_rows	1
-Sort_scan	4
+Sort_scan	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	1
@@ -2042,91 +2567,121 @@ EXPLAIN
     "cost_info": {
       "query_cost": "2.65"
     } /* cost_info */,
-    "nested_loop": [
-      {
-        "table": {
-          "table_name": "t1",
-          "access_type": "ALL",
-          "rows_examined_per_scan": 3,
-          "rows_produced_per_join": 3,
-          "filtered": "100.00",
-          "cost_info": {
-            "read_cost": "0.25",
-            "eval_cost": "0.30",
-            "prefix_cost": "0.55",
-            "data_read_per_join": "48"
-          } /* cost_info */,
-          "used_columns": [
-            "a1",
-            "b1"
-          ] /* used_columns */
-        } /* table */
-      },
-      {
-        "table": {
-          "table_name": "t2",
-          "access_type": "ref",
-          "possible_keys": [
-            "PRIMARY"
-          ] /* possible_keys */,
-          "key": "PRIMARY",
-          "used_key_parts": [
-            "a2"
-          ] /* used_key_parts */,
-          "key_length": "4",
-          "ref": [
-            "test.t1.a1"
-          ] /* ref */,
-          "rows_examined_per_scan": 1,
-          "rows_produced_per_join": 3,
-          "filtered": "100.00",
-          "using_index": true,
-          "cost_info": {
-            "read_cost": "0.75",
-            "eval_cost": "0.30",
-            "prefix_cost": "1.60",
-            "data_read_per_join": "48"
-          } /* cost_info */,
-          "used_columns": [
-            "a2",
-            "b2"
-          ] /* used_columns */
-        } /* table */
-      },
-      {
-        "table": {
-          "table_name": "t3",
-          "access_type": "eq_ref",
-          "possible_keys": [
-            "PRIMARY"
-          ] /* possible_keys */,
-          "key": "PRIMARY",
-          "used_key_parts": [
-            "a3",
-            "b3"
-          ] /* used_key_parts */,
-          "key_length": "8",
-          "ref": [
-            "test.t2.b2",
-            "test.t1.b1"
-          ] /* ref */,
-          "rows_examined_per_scan": 1,
-          "rows_produced_per_join": 3,
-          "filtered": "100.00",
-          "using_index": true,
-          "cost_info": {
-            "read_cost": "0.75",
-            "eval_cost": "0.30",
-            "prefix_cost": "2.65",
-            "data_read_per_join": "48"
-          } /* cost_info */,
-          "used_columns": [
-            "a3",
-            "b3"
-          ] /* used_columns */
-        } /* table */
-      }
-    ] /* nested_loop */
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 3,
+      "rows_produced_per_join": 3,
+      "filtered": "100.00",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.25",
+        "eval_cost": "0.30",
+        "prefix_cost": "0.55",
+        "data_read_per_join": "96"
+      } /* cost_info */,
+      "used_columns": [
+        "a1",
+        "b1",
+        "a2",
+        "b2",
+        "a3",
+        "b3"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "2.65"
+        } /* cost_info */,
+        "nested_loop": [
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t1",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 3,
+              "rows_produced_per_join": 3,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.25",
+                "eval_cost": "0.30",
+                "prefix_cost": "0.55",
+                "data_read_per_join": "48"
+              } /* cost_info */,
+              "used_columns": [
+                "a1",
+                "b1"
+              ] /* used_columns */
+            } /* table */
+          },
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t2",
+              "access_type": "ref",
+              "possible_keys": [
+                "PRIMARY"
+              ] /* possible_keys */,
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "a2"
+              ] /* used_key_parts */,
+              "key_length": "4",
+              "ref": [
+                "test.t1.a1"
+              ] /* ref */,
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 3,
+              "filtered": "100.00",
+              "using_index": true,
+              "cost_info": {
+                "read_cost": "0.75",
+                "eval_cost": "0.30",
+                "prefix_cost": "1.60",
+                "data_read_per_join": "48"
+              } /* cost_info */,
+              "used_columns": [
+                "a2",
+                "b2"
+              ] /* used_columns */
+            } /* table */
+          },
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t3",
+              "access_type": "eq_ref",
+              "possible_keys": [
+                "PRIMARY"
+              ] /* possible_keys */,
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "a3",
+                "b3"
+              ] /* used_key_parts */,
+              "key_length": "8",
+              "ref": [
+                "test.t2.b2",
+                "test.t1.b1"
+              ] /* ref */,
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 3,
+              "filtered": "100.00",
+              "using_index": true,
+              "cost_info": {
+                "read_cost": "0.75",
+                "eval_cost": "0.30",
+                "prefix_cost": "2.65",
+                "data_read_per_join": "48"
+              } /* cost_info */,
+              "used_columns": [
+                "a3",
+                "b3"
+              ] /* used_columns */
+            } /* table */
+          }
+        ] /* nested_loop */
+      } /* query_block */
+    } /* table */
   } /* query_block */
 }
 Warnings:
@@ -2595,12 +3150,62 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "0.75"
+    } /* cost_info */,
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 5,
+      "rows_produced_per_join": 5,
+      "filtered": "100.00",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.25",
+        "eval_cost": "0.50",
+        "prefix_cost": "0.75",
+        "data_read_per_join": "80"
+      } /* cost_info */,
+      "used_columns": [
+        "i",
+        "j"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "0.75"
+        } /* cost_info */,
+        "table": {
+          "select_id": 2,
+          "table_name": "t1",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 5,
+          "rows_produced_per_join": 5,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "0.25",
+            "eval_cost": "0.50",
+            "prefix_cost": "0.75",
+            "data_read_per_join": "80"
+          } /* cost_info */,
+          "used_columns": [
+            "i",
+            "j"
+          ] /* used_columns */
+        } /* table */
+      } /* query_block */
+    } /* table */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`i` AS `i`,`test`.`t1`.`j` AS `j` from `test`.`t1`
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	3
+Handler_read_rnd_next	6
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_first	1
@@ -2646,12 +3251,62 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "0.75"
+    } /* cost_info */,
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 5,
+      "rows_produced_per_join": 5,
+      "filtered": "100.00",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.25",
+        "eval_cost": "0.50",
+        "prefix_cost": "0.75",
+        "data_read_per_join": "80"
+      } /* cost_info */,
+      "used_columns": [
+        "i",
+        "j"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "0.75"
+        } /* cost_info */,
+        "table": {
+          "select_id": 2,
+          "table_name": "t1",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 5,
+          "rows_produced_per_join": 5,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "0.25",
+            "eval_cost": "0.50",
+            "prefix_cost": "0.75",
+            "data_read_per_join": "80"
+          } /* cost_info */,
+          "used_columns": [
+            "i",
+            "j"
+          ] /* used_columns */
+        } /* table */
+      } /* query_block */
+    } /* table */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`i` AS `i`,`test`.`t1`.`j` AS `j` from `test`.`t1`
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	3
+Handler_read_rnd_next	6
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	5
@@ -2712,12 +3367,75 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t2 WHERE b = 10 ORDER BY a, c LIMIT 5;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "X"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": false,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": "X",
+        "rows_produced_per_join": "X",
+        "filtered": "X",
+        "parallel_execute": "4 workers",
+        "cost_info": {
+          "read_cost": "X",
+          "eval_cost": "X",
+          "prefix_cost": "X",
+          "data_read_per_join": "X"
+        } /* cost_info */,
+        "used_columns": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "select_id": 2,
+            "table_name": "t2",
+            "access_type": "index",
+            "key": "a",
+            "used_key_parts": [
+              "a",
+              "b",
+              "c"
+            ] /* used_key_parts */,
+            "key_length": "15",
+            "rows_examined_per_scan": "X",
+            "rows_produced_per_join": "X",
+            "filtered": "X",
+            "cost_info": {
+              "read_cost": "X",
+              "eval_cost": "X",
+              "prefix_cost": "X",
+              "data_read_per_join": "X"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "b",
+              "c",
+              "d"
+            ] /* used_columns */,
+            "attached_condition": "(`test`.`t2`.`b` = 10)"
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t2`.`a` AS `a`,`test`.`t2`.`b` AS `b`,`test`.`t2`.`c` AS `c`,`test`.`t2`.`d` AS `d` from `test`.`t2` where (`test`.`t2`.`b` = 10) order by `test`.`t2`.`a`,`test`.`t2`.`c` limit 5
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	5
+Handler_read_rnd_next	16936
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	5
@@ -2783,12 +3501,60 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "0.55"
+    } /* cost_info */,
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 3,
+      "rows_produced_per_join": 3,
+      "filtered": "100.00",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.25",
+        "eval_cost": "0.30",
+        "prefix_cost": "0.55",
+        "data_read_per_join": "48"
+      } /* cost_info */,
+      "used_columns": [
+        "i"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "0.55"
+        } /* cost_info */,
+        "table": {
+          "select_id": 2,
+          "table_name": "t1",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 3,
+          "rows_produced_per_join": 3,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "0.25",
+            "eval_cost": "0.30",
+            "prefix_cost": "0.55",
+            "data_read_per_join": "24"
+          } /* cost_info */,
+          "used_columns": [
+            "i"
+          ] /* used_columns */
+        } /* table */
+      } /* query_block */
+    } /* table */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`i` AS `i` from `test`.`t1`
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	2
+Handler_read_rnd_next	4
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_first	1
@@ -2804,7 +3570,7 @@ EXPLAIN INSERT INTO t2 SELECT * FROM t1 JOIN t1 AS tt USING(i);
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	INSERT	t2	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
 1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
-1	SIMPLE	tt	NULL	ALL	NULL	NULL	NULL	NULL	3	33.33	Using where; Using join buffer (Block Nested Loop)
+1	SIMPLE	tt	NULL	ALL	NULL	NULL	NULL	NULL	3	33.33	Using where; Using join buffer (hash join)
 Warnings:
 Note	1003	insert into `test`.`t2` /* select#1 */ select `test`.`t1`.`i` AS `i` from `test`.`t1` join `test`.`t1` `tt` where (`test`.`tt`.`i` = `test`.`t1`.`i`)
 FLUSH STATUS;
@@ -2850,7 +3616,7 @@ EXPLAIN
             "rows_examined_per_scan": 3,
             "rows_produced_per_join": 3,
             "filtered": "33.33",
-            "using_join_buffer": "Block Nested Loop",
+            "using_join_buffer": "hash join",
             "cost_info": {
               "read_cost": "0.25",
               "eval_cost": "0.30",
@@ -2880,46 +3646,70 @@ EXPLAIN
     "cost_info": {
       "query_cost": "1.70"
     } /* cost_info */,
-    "nested_loop": [
-      {
-        "table": {
-          "table_name": "t1",
-          "access_type": "ALL",
-          "rows_examined_per_scan": 3,
-          "rows_produced_per_join": 3,
-          "filtered": "100.00",
-          "cost_info": {
-            "read_cost": "0.25",
-            "eval_cost": "0.30",
-            "prefix_cost": "0.55",
-            "data_read_per_join": "24"
-          } /* cost_info */,
-          "used_columns": [
-            "i"
-          ] /* used_columns */
-        } /* table */
-      },
-      {
-        "table": {
-          "table_name": "tt",
-          "access_type": "ALL",
-          "rows_examined_per_scan": 3,
-          "rows_produced_per_join": 3,
-          "filtered": "33.33",
-          "using_join_buffer": "Block Nested Loop",
-          "cost_info": {
-            "read_cost": "0.25",
-            "eval_cost": "0.30",
-            "prefix_cost": "1.70",
-            "data_read_per_join": "24"
-          } /* cost_info */,
-          "used_columns": [
-            "i"
-          ] /* used_columns */,
-          "attached_condition": "(`test`.`tt`.`i` = `test`.`t1`.`i`)"
-        } /* table */
-      }
-    ] /* nested_loop */
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 3,
+      "rows_produced_per_join": 3,
+      "filtered": "100.00",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.25",
+        "eval_cost": "0.30",
+        "prefix_cost": "0.55",
+        "data_read_per_join": "48"
+      } /* cost_info */,
+      "used_columns": [
+        "i"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "1.70"
+        } /* cost_info */,
+        "nested_loop": [
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t1",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 3,
+              "rows_produced_per_join": 3,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.25",
+                "eval_cost": "0.30",
+                "prefix_cost": "0.55",
+                "data_read_per_join": "24"
+              } /* cost_info */,
+              "used_columns": [
+                "i"
+              ] /* used_columns */
+            } /* table */
+          },
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "tt",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 3,
+              "rows_produced_per_join": 3,
+              "filtered": "33.33",
+              "using_join_buffer": "hash join",
+              "cost_info": {
+                "read_cost": "0.25",
+                "eval_cost": "0.30",
+                "prefix_cost": "1.70",
+                "data_read_per_join": "24"
+              } /* cost_info */,
+              "used_columns": [
+                "i"
+              ] /* used_columns */,
+              "attached_condition": "(`test`.`tt`.`i` = `test`.`t1`.`i`)"
+            } /* table */
+          }
+        ] /* nested_loop */
+      } /* query_block */
+    } /* table */
   } /* query_block */
 }
 Warnings:
@@ -2994,12 +3784,60 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "0.55"
+    } /* cost_info */,
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 3,
+      "rows_produced_per_join": 3,
+      "filtered": "100.00",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.25",
+        "eval_cost": "0.30",
+        "prefix_cost": "0.55",
+        "data_read_per_join": "48"
+      } /* cost_info */,
+      "used_columns": [
+        "i"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "0.55"
+        } /* cost_info */,
+        "table": {
+          "select_id": 2,
+          "table_name": "t1",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 3,
+          "rows_produced_per_join": 3,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "0.25",
+            "eval_cost": "0.30",
+            "prefix_cost": "0.55",
+            "data_read_per_join": "24"
+          } /* cost_info */,
+          "used_columns": [
+            "i"
+          ] /* used_columns */
+        } /* table */
+      } /* query_block */
+    } /* table */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`i` AS `i` from `test`.`t1`
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	2
+Handler_read_rnd_next	4
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_first	1
@@ -3129,11 +3967,71 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1 WHERE i > 10 AND i <= 18 ORDER BY i LIMIT 1;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "X"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": false,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": "X",
+        "rows_produced_per_join": "X",
+        "filtered": "X",
+        "parallel_execute": "1 workers",
+        "cost_info": {
+          "read_cost": "X",
+          "eval_cost": "X",
+          "prefix_cost": "X",
+          "data_read_per_join": "X"
+        } /* cost_info */,
+        "used_columns": [
+          "a",
+          "i"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "select_id": 2,
+            "table_name": "t1",
+            "access_type": "range",
+            "possible_keys": [
+              "PRIMARY"
+            ] /* possible_keys */,
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "i"
+            ] /* used_key_parts */,
+            "key_length": "4",
+            "rows_examined_per_scan": "X",
+            "rows_produced_per_join": "X",
+            "filtered": "X",
+            "cost_info": {
+              "read_cost": "X",
+              "eval_cost": "X",
+              "prefix_cost": "X",
+              "data_read_per_join": "X"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "i"
+            ] /* used_columns */,
+            "attached_condition": "((`test`.`t1`.`i` > 10) and (`test`.`t1`.`i` <= 18))"
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`a` AS `a`,`test`.`t1`.`i` AS `i` from `test`.`t1` where ((`test`.`t1`.`i` > 10) and (`test`.`t1`.`i` <= 18)) order by `test`.`t1`.`i` limit 1
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_key	4
+Handler_read_rnd_next	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	1
@@ -3186,18 +4084,74 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1 WHERE i > 10 AND i <= 18 ORDER BY i LIMIT 5;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "5.74"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": true,
+      "cost_info": {
+        "sort_cost": "2.89"
+      } /* cost_info */,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": 26,
+        "rows_produced_per_join": 2,
+        "filtered": "11.11",
+        "parallel_execute": "1 workers",
+        "cost_info": {
+          "read_cost": "2.56",
+          "eval_cost": "0.29",
+          "prefix_cost": "2.85",
+          "data_read_per_join": "69"
+        } /* cost_info */,
+        "used_columns": [
+          "a",
+          "i"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": true,
+          "table": {
+            "select_id": 2,
+            "table_name": "t1",
+            "access_type": "ALL",
+            "possible_keys": [
+              "i"
+            ] /* possible_keys */,
+            "rows_examined_per_scan": 26,
+            "rows_produced_per_join": 2,
+            "filtered": "11.11",
+            "cost_info": {
+              "read_cost": "2.56",
+              "eval_cost": "0.29",
+              "prefix_cost": "2.85",
+              "data_read_per_join": "46"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "i"
+            ] /* used_columns */,
+            "attached_condition": "((`test`.`t1`.`i` > 10) and (`test`.`t1`.`i` <= 18))"
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
 Warnings:
 Warning	1739	Cannot use range access on index 'i' due to type or collation conversion on field 'i'
 Warning	1739	Cannot use range access on index 'i' due to type or collation conversion on field 'i'
+Note	1003	/* select#1 */ select `test`.`t1`.`a` AS `a`,`test`.`t1`.`i` AS `i` from `test`.`t1` where ((`test`.`t1`.`i` > 10) and (`test`.`t1`.`i` <= 18)) order by `test`.`t1`.`i` limit 5
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
-Handler_read_key	8
-Handler_read_rnd	5
+Handler_read_key	3
+Handler_read_rnd_next	27
 Sort_rows	5
-Sort_scan	4
+Sort_scan	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	5
@@ -3253,12 +4207,75 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t2 WHERE b = 10 ORDER BY a, c LIMIT 5;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "2.85"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": false,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": 5,
+        "rows_produced_per_join": 2,
+        "filtered": "10.00",
+        "parallel_execute": "1 workers",
+        "cost_info": {
+          "read_cost": "2.59",
+          "eval_cost": "0.26",
+          "prefix_cost": "2.85",
+          "data_read_per_join": "62"
+        } /* cost_info */,
+        "used_columns": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "select_id": 2,
+            "table_name": "t2",
+            "access_type": "index",
+            "key": "a",
+            "used_key_parts": [
+              "a",
+              "b",
+              "c"
+            ] /* used_key_parts */,
+            "key_length": "15",
+            "rows_examined_per_scan": 5,
+            "rows_produced_per_join": 2,
+            "filtered": "10.00",
+            "cost_info": {
+              "read_cost": "2.59",
+              "eval_cost": "0.26",
+              "prefix_cost": "2.85",
+              "data_read_per_join": "62"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "b",
+              "c",
+              "d"
+            ] /* used_columns */,
+            "attached_condition": "(`test`.`t2`.`b` = 10)"
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t2`.`a` AS `a`,`test`.`t2`.`b` AS `b`,`test`.`t2`.`c` AS `c`,`test`.`t2`.`d` AS `d` from `test`.`t2` where (`test`.`t2`.`b` = 10) order by `test`.`t2`.`a`,`test`.`t2`.`c` limit 5
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	5
+Handler_read_rnd_next	27
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	1
@@ -3322,12 +4339,75 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t2 WHERE b = 10 ORDER BY a, c LIMIT 5;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "X"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": false,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": "X",
+        "rows_produced_per_join": "X",
+        "filtered": "X",
+        "parallel_execute": "4 workers",
+        "cost_info": {
+          "read_cost": "X",
+          "eval_cost": "X",
+          "prefix_cost": "X",
+          "data_read_per_join": "X"
+        } /* cost_info */,
+        "used_columns": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "select_id": 2,
+            "table_name": "t2",
+            "access_type": "index",
+            "key": "a",
+            "used_key_parts": [
+              "a",
+              "b",
+              "c"
+            ] /* used_key_parts */,
+            "key_length": "15",
+            "rows_examined_per_scan": "X",
+            "rows_produced_per_join": "X",
+            "filtered": "X",
+            "cost_info": {
+              "read_cost": "X",
+              "eval_cost": "X",
+              "prefix_cost": "X",
+              "data_read_per_join": "X"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "b",
+              "c",
+              "d"
+            ] /* used_columns */,
+            "attached_condition": "(`test`.`t2`.`b` = 10)"
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t2`.`a` AS `a`,`test`.`t2`.`b` AS `b`,`test`.`t2`.`c` AS `c`,`test`.`t2`.`d` AS `d` from `test`.`t2` where (`test`.`t2`.`b` = 10) order by `test`.`t2`.`a`,`test`.`t2`.`c` limit 5
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	5
+Handler_read_rnd_next	16936
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	5
@@ -3383,15 +4463,73 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t2 WHERE b = 10 ORDER BY a, c LIMIT 5;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "5.45"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": true,
+      "cost_info": {
+        "sort_cost": "2.60"
+      } /* cost_info */,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": 26,
+        "rows_produced_per_join": 2,
+        "filtered": "10.00",
+        "parallel_execute": "1 workers",
+        "cost_info": {
+          "read_cost": "2.59",
+          "eval_cost": "0.26",
+          "prefix_cost": "2.85",
+          "data_read_per_join": "104"
+        } /* cost_info */,
+        "used_columns": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": true,
+          "table": {
+            "select_id": 2,
+            "table_name": "t2",
+            "access_type": "ALL",
+            "rows_examined_per_scan": 26,
+            "rows_produced_per_join": 2,
+            "filtered": "10.00",
+            "cost_info": {
+              "read_cost": "2.59",
+              "eval_cost": "0.26",
+              "prefix_cost": "2.85",
+              "data_read_per_join": "104"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "b",
+              "c",
+              "d"
+            ] /* used_columns */,
+            "attached_condition": "(`test`.`t2`.`b` = 10)"
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t2`.`a` AS `a`,`test`.`t2`.`b` AS `b`,`test`.`t2`.`c` AS `c`,`test`.`t2`.`d` AS `d` from `test`.`t2` where (`test`.`t2`.`b` = 10) order by `test`.`t2`.`a`,`test`.`t2`.`c` limit 5
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
-Handler_read_key	6
-Handler_read_rnd	1
+Handler_read_key	5
+Handler_read_rnd_next	27
 Sort_rows	1
-Sort_scan	4
+Sort_scan	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	1
@@ -3600,16 +4738,16 @@ Variable_name	Value
 Handler_read_key	9
 Handler_read_next	7
 Handler_read_rnd	4
-Sort_range	1
 Sort_rows	4
+Sort_scan	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	4
 Handler_read_key	13
 Handler_read_next	7
 Handler_read_rnd	8
-Sort_range	1
 Sort_rows	4
+Sort_scan	1
 
 DROP TABLE t1, t2;
 #36
@@ -3677,20 +4815,12 @@ EXPLAIN
     "ordering_operation": {
       "using_filesort": false,
       "table": {
-        "table_name": "t2",
-        "access_type": "range",
-        "possible_keys": [
-          "PRIMARY"
-        ] /* possible_keys */,
-        "key": "PRIMARY",
-        "used_key_parts": [
-          "i"
-        ] /* used_key_parts */,
-        "key_length": "4",
+        "table_name": "<gather2>",
+        "access_type": "ALL",
         "rows_examined_per_scan": "X",
         "rows_produced_per_join": "X",
         "filtered": "X",
-        "backward_index_scan": true,
+        "parallel_execute": "1 workers",
         "cost_info": {
           "read_cost": "X",
           "eval_cost": "X",
@@ -3701,7 +4831,37 @@ EXPLAIN
           "a",
           "i"
         ] /* used_columns */,
-        "attached_condition": "((`test`.`t2`.`i` > 10) and (`test`.`t2`.`i` <= 18))"
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "select_id": 2,
+            "table_name": "t2",
+            "access_type": "range",
+            "possible_keys": [
+              "PRIMARY"
+            ] /* possible_keys */,
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "i"
+            ] /* used_key_parts */,
+            "key_length": "4",
+            "rows_examined_per_scan": "X",
+            "rows_produced_per_join": "X",
+            "filtered": "X",
+            "backward_index_scan": true,
+            "cost_info": {
+              "read_cost": "X",
+              "eval_cost": "X",
+              "prefix_cost": "X",
+              "data_read_per_join": "X"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "i"
+            ] /* used_columns */,
+            "attached_condition": "((`test`.`t2`.`i` > 10) and (`test`.`t2`.`i` <= 18))"
+          } /* table */
+        } /* ordering_operation */
       } /* table */
     } /* ordering_operation */
   } /* query_block */
@@ -3710,7 +4870,8 @@ Warnings:
 Note	1003	/* select#1 */ select `test`.`t2`.`a` AS `a`,`test`.`t2`.`i` AS `i` from `test`.`t2` where ((`test`.`t2`.`i` > 10) and (`test`.`t2`.`i` <= 18)) order by `test`.`t2`.`i` desc limit 1
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
-Handler_read_key	3
+Handler_read_key	4
+Handler_read_rnd_next	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	1
@@ -3760,15 +4921,67 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t2 ORDER BY a, b DESC LIMIT 5;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "2.85"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": true,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": 26,
+        "rows_produced_per_join": 26,
+        "filtered": "100.00",
+        "parallel_execute": "1 workers",
+        "cost_info": {
+          "read_cost": "0.25",
+          "eval_cost": "2.60",
+          "prefix_cost": "2.85",
+          "data_read_per_join": "832"
+        } /* cost_info */,
+        "used_columns": [
+          "a",
+          "b",
+          "c"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": true,
+          "table": {
+            "select_id": 2,
+            "table_name": "t2",
+            "access_type": "ALL",
+            "rows_examined_per_scan": 26,
+            "rows_produced_per_join": 26,
+            "filtered": "100.00",
+            "cost_info": {
+              "read_cost": "0.25",
+              "eval_cost": "2.60",
+              "prefix_cost": "2.85",
+              "data_read_per_join": "832"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "b",
+              "c"
+            ] /* used_columns */
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t2`.`a` AS `a`,`test`.`t2`.`b` AS `b`,`test`.`t2`.`c` AS `c` from `test`.`t2` order by `test`.`t2`.`a`,`test`.`t2`.`b` desc limit 5
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
-Handler_read_key	9
-Handler_read_rnd	5
+Handler_read_key	4
+Handler_read_rnd_next	27
 Sort_rows	5
-Sort_scan	4
+Sort_scan	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	5
@@ -3839,18 +5052,13 @@ EXPLAIN
     "ordering_operation": {
       "using_filesort": false,
       "table": {
-        "table_name": "t2",
-        "access_type": "index",
-        "key": "a",
-        "used_key_parts": [
-          "a",
-          "b"
-        ] /* used_key_parts */,
-        "key_length": "18",
+        "table_name": "<gather2>",
+        "access_type": "ALL",
         "rows_examined_per_scan": "X",
         "rows_produced_per_join": "X",
         "filtered": "X",
         "backward_index_scan": true,
+        "parallel_execute": "4 workers",
         "cost_info": {
           "read_cost": "X",
           "eval_cost": "X",
@@ -3861,7 +5069,36 @@ EXPLAIN
           "a",
           "b",
           "c"
-        ] /* used_columns */
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "select_id": 2,
+            "table_name": "t2",
+            "access_type": "index",
+            "key": "a",
+            "used_key_parts": [
+              "a",
+              "b"
+            ] /* used_key_parts */,
+            "key_length": "18",
+            "rows_examined_per_scan": "X",
+            "rows_produced_per_join": "X",
+            "filtered": "X",
+            "backward_index_scan": true,
+            "cost_info": {
+              "read_cost": "X",
+              "eval_cost": "X",
+              "prefix_cost": "X",
+              "data_read_per_join": "X"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "b",
+              "c"
+            ] /* used_columns */
+          } /* table */
+        } /* ordering_operation */
       } /* table */
     } /* ordering_operation */
   } /* query_block */
@@ -3872,7 +5109,7 @@ Note	1003	/* select#1 */ select `test`.`t2`.`a` AS `a`,`test`.`t2`.`b` AS `b`,`t
 Variable_name	Value
 Handler_read_key	4
 Handler_read_last	1
-Handler_read_prev	4
+Handler_read_rnd_next	20
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	5
@@ -3937,11 +5174,71 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM  t2    WHERE i > 10 AND i <= 18 ORDER BY i LIMIT 1;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "X"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": false,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": "X",
+        "rows_produced_per_join": "X",
+        "filtered": "X",
+        "parallel_execute": "1 workers",
+        "cost_info": {
+          "read_cost": "X",
+          "eval_cost": "X",
+          "prefix_cost": "X",
+          "data_read_per_join": "X"
+        } /* cost_info */,
+        "used_columns": [
+          "a",
+          "i"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "select_id": 2,
+            "table_name": "t2",
+            "access_type": "range",
+            "possible_keys": [
+              "PRIMARY"
+            ] /* possible_keys */,
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "i"
+            ] /* used_key_parts */,
+            "key_length": "4",
+            "rows_examined_per_scan": "X",
+            "rows_produced_per_join": "X",
+            "filtered": "X",
+            "cost_info": {
+              "read_cost": "X",
+              "eval_cost": "X",
+              "prefix_cost": "X",
+              "data_read_per_join": "X"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "i"
+            ] /* used_columns */,
+            "attached_condition": "((`test`.`t2`.`i` > 10) and (`test`.`t2`.`i` <= 18))"
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t2`.`a` AS `a`,`test`.`t2`.`i` AS `i` from `test`.`t2` where ((`test`.`t2`.`i` > 10) and (`test`.`t2`.`i` <= 18)) order by `test`.`t2`.`i` limit 1
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_key	4
+Handler_read_rnd_next	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_key	4
@@ -3997,18 +5294,74 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t2     WHERE i > 10 AND i <= 18 ORDER BY i LIMIT 5;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "5.74"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": true,
+      "cost_info": {
+        "sort_cost": "2.89"
+      } /* cost_info */,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": 26,
+        "rows_produced_per_join": 2,
+        "filtered": "11.11",
+        "parallel_execute": "1 workers",
+        "cost_info": {
+          "read_cost": "2.56",
+          "eval_cost": "0.29",
+          "prefix_cost": "2.85",
+          "data_read_per_join": "69"
+        } /* cost_info */,
+        "used_columns": [
+          "a",
+          "i"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": true,
+          "table": {
+            "select_id": 2,
+            "table_name": "t2",
+            "access_type": "ALL",
+            "possible_keys": [
+              "i"
+            ] /* possible_keys */,
+            "rows_examined_per_scan": 26,
+            "rows_produced_per_join": 2,
+            "filtered": "11.11",
+            "cost_info": {
+              "read_cost": "2.56",
+              "eval_cost": "0.29",
+              "prefix_cost": "2.85",
+              "data_read_per_join": "46"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "i"
+            ] /* used_columns */,
+            "attached_condition": "((`test`.`t2`.`i` > 10) and (`test`.`t2`.`i` <= 18))"
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
 Warnings:
 Warning	1739	Cannot use range access on index 'i' due to type or collation conversion on field 'i'
 Warning	1739	Cannot use range access on index 'i' due to type or collation conversion on field 'i'
+Note	1003	/* select#1 */ select `test`.`t2`.`a` AS `a`,`test`.`t2`.`i` AS `i` from `test`.`t2` where ((`test`.`t2`.`i` > 10) and (`test`.`t2`.`i` <= 18)) order by `test`.`t2`.`i` limit 5
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
-Handler_read_key	8
-Handler_read_rnd	5
+Handler_read_key	3
+Handler_read_rnd_next	27
 Sort_rows	5
-Sort_scan	4
+Sort_scan	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_first	1
@@ -4064,12 +5417,75 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t2     WHERE b = 10 ORDER BY a, c LIMIT 5;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "2.85"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": false,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": 5,
+        "rows_produced_per_join": 2,
+        "filtered": "10.00",
+        "parallel_execute": "1 workers",
+        "cost_info": {
+          "read_cost": "2.59",
+          "eval_cost": "0.26",
+          "prefix_cost": "2.85",
+          "data_read_per_join": "62"
+        } /* cost_info */,
+        "used_columns": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "select_id": 2,
+            "table_name": "t2",
+            "access_type": "index",
+            "key": "a",
+            "used_key_parts": [
+              "a",
+              "b",
+              "c"
+            ] /* used_key_parts */,
+            "key_length": "15",
+            "rows_examined_per_scan": 5,
+            "rows_produced_per_join": 2,
+            "filtered": "10.00",
+            "cost_info": {
+              "read_cost": "2.59",
+              "eval_cost": "0.26",
+              "prefix_cost": "2.85",
+              "data_read_per_join": "62"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "b",
+              "c",
+              "d"
+            ] /* used_columns */,
+            "attached_condition": "(`test`.`t2`.`b` = 10)"
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t2`.`a` AS `a`,`test`.`t2`.`b` AS `b`,`test`.`t2`.`c` AS `c`,`test`.`t2`.`d` AS `d` from `test`.`t2` where (`test`.`t2`.`b` = 10) order by `test`.`t2`.`a`,`test`.`t2`.`c` limit 5
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	5
+Handler_read_rnd_next	27
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_first	1
@@ -4134,12 +5550,75 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t2     WHERE b = 10 ORDER BY a, c LIMIT 5;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "X"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": false,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": "X",
+        "rows_produced_per_join": "X",
+        "filtered": "X",
+        "parallel_execute": "4 workers",
+        "cost_info": {
+          "read_cost": "X",
+          "eval_cost": "X",
+          "prefix_cost": "X",
+          "data_read_per_join": "X"
+        } /* cost_info */,
+        "used_columns": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "select_id": 2,
+            "table_name": "t2",
+            "access_type": "index",
+            "key": "a",
+            "used_key_parts": [
+              "a",
+              "b",
+              "c"
+            ] /* used_key_parts */,
+            "key_length": "15",
+            "rows_examined_per_scan": "X",
+            "rows_produced_per_join": "X",
+            "filtered": "X",
+            "cost_info": {
+              "read_cost": "X",
+              "eval_cost": "X",
+              "prefix_cost": "X",
+              "data_read_per_join": "X"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "b",
+              "c",
+              "d"
+            ] /* used_columns */,
+            "attached_condition": "(`test`.`t2`.`b` = 10)"
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t2`.`a` AS `a`,`test`.`t2`.`b` AS `b`,`test`.`t2`.`c` AS `c`,`test`.`t2`.`d` AS `d` from `test`.`t2` where (`test`.`t2`.`b` = 10) order by `test`.`t2`.`a`,`test`.`t2`.`c` limit 5
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	5
+Handler_read_rnd_next	16936
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_first	1
@@ -4196,15 +5675,73 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t2     WHERE b = 10 ORDER BY a, c LIMIT 5;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "5.45"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": true,
+      "cost_info": {
+        "sort_cost": "2.60"
+      } /* cost_info */,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": 26,
+        "rows_produced_per_join": 2,
+        "filtered": "10.00",
+        "parallel_execute": "1 workers",
+        "cost_info": {
+          "read_cost": "2.59",
+          "eval_cost": "0.26",
+          "prefix_cost": "2.85",
+          "data_read_per_join": "104"
+        } /* cost_info */,
+        "used_columns": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": true,
+          "table": {
+            "select_id": 2,
+            "table_name": "t2",
+            "access_type": "ALL",
+            "rows_examined_per_scan": 26,
+            "rows_produced_per_join": 2,
+            "filtered": "10.00",
+            "cost_info": {
+              "read_cost": "2.59",
+              "eval_cost": "0.26",
+              "prefix_cost": "2.85",
+              "data_read_per_join": "104"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "b",
+              "c",
+              "d"
+            ] /* used_columns */,
+            "attached_condition": "(`test`.`t2`.`b` = 10)"
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t2`.`a` AS `a`,`test`.`t2`.`b` AS `b`,`test`.`t2`.`c` AS `c`,`test`.`t2`.`d` AS `d` from `test`.`t2` where (`test`.`t2`.`b` = 10) order by `test`.`t2`.`a`,`test`.`t2`.`c` limit 5
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
-Handler_read_key	6
-Handler_read_rnd	1
+Handler_read_key	5
+Handler_read_rnd_next	27
 Sort_rows	1
-Sort_scan	4
+Sort_scan	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_first	1
@@ -4411,16 +5948,16 @@ Variable_name	Value
 Handler_read_key	9
 Handler_read_next	7
 Handler_read_rnd	4
-Sort_range	1
 Sort_rows	4
+Sort_scan	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_key	13
 Handler_read_next	7
 Handler_read_rnd	8
 Handler_update	4
-Sort_range	1
 Sort_rows	4
+Sort_scan	1
 
 DROP TABLE t1, t2;
 #46
@@ -4489,20 +6026,12 @@ EXPLAIN
     "ordering_operation": {
       "using_filesort": false,
       "table": {
-        "table_name": "t2",
-        "access_type": "range",
-        "possible_keys": [
-          "PRIMARY"
-        ] /* possible_keys */,
-        "key": "PRIMARY",
-        "used_key_parts": [
-          "i"
-        ] /* used_key_parts */,
-        "key_length": "4",
+        "table_name": "<gather2>",
+        "access_type": "ALL",
         "rows_examined_per_scan": "X",
         "rows_produced_per_join": "X",
         "filtered": "X",
-        "backward_index_scan": true,
+        "parallel_execute": "1 workers",
         "cost_info": {
           "read_cost": "X",
           "eval_cost": "X",
@@ -4513,7 +6042,37 @@ EXPLAIN
           "a",
           "i"
         ] /* used_columns */,
-        "attached_condition": "((`test`.`t2`.`i` > 10) and (`test`.`t2`.`i` <= 18))"
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "select_id": 2,
+            "table_name": "t2",
+            "access_type": "range",
+            "possible_keys": [
+              "PRIMARY"
+            ] /* possible_keys */,
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "i"
+            ] /* used_key_parts */,
+            "key_length": "4",
+            "rows_examined_per_scan": "X",
+            "rows_produced_per_join": "X",
+            "filtered": "X",
+            "backward_index_scan": true,
+            "cost_info": {
+              "read_cost": "X",
+              "eval_cost": "X",
+              "prefix_cost": "X",
+              "data_read_per_join": "X"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "i"
+            ] /* used_columns */,
+            "attached_condition": "((`test`.`t2`.`i` > 10) and (`test`.`t2`.`i` <= 18))"
+          } /* table */
+        } /* ordering_operation */
       } /* table */
     } /* ordering_operation */
   } /* query_block */
@@ -4522,7 +6081,8 @@ Warnings:
 Note	1003	/* select#1 */ select `test`.`t2`.`a` AS `a`,`test`.`t2`.`i` AS `i` from `test`.`t2` where ((`test`.`t2`.`i` > 10) and (`test`.`t2`.`i` <= 18)) order by `test`.`t2`.`i` desc limit 1
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
-Handler_read_key	3
+Handler_read_key	4
+Handler_read_rnd_next	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_key	4
@@ -4573,15 +6133,67 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t2     ORDER BY a, b DESC LIMIT 5;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "2.85"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": true,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": 26,
+        "rows_produced_per_join": 26,
+        "filtered": "100.00",
+        "parallel_execute": "1 workers",
+        "cost_info": {
+          "read_cost": "0.25",
+          "eval_cost": "2.60",
+          "prefix_cost": "2.85",
+          "data_read_per_join": "832"
+        } /* cost_info */,
+        "used_columns": [
+          "a",
+          "b",
+          "c"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": true,
+          "table": {
+            "select_id": 2,
+            "table_name": "t2",
+            "access_type": "ALL",
+            "rows_examined_per_scan": 26,
+            "rows_produced_per_join": 26,
+            "filtered": "100.00",
+            "cost_info": {
+              "read_cost": "0.25",
+              "eval_cost": "2.60",
+              "prefix_cost": "2.85",
+              "data_read_per_join": "832"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "b",
+              "c"
+            ] /* used_columns */
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t2`.`a` AS `a`,`test`.`t2`.`b` AS `b`,`test`.`t2`.`c` AS `c` from `test`.`t2` order by `test`.`t2`.`a`,`test`.`t2`.`b` desc limit 5
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
-Handler_read_key	9
-Handler_read_rnd	5
+Handler_read_key	4
+Handler_read_rnd_next	27
 Sort_rows	5
-Sort_scan	4
+Sort_scan	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_first	1
@@ -4653,18 +6265,13 @@ EXPLAIN
     "ordering_operation": {
       "using_filesort": false,
       "table": {
-        "table_name": "t2",
-        "access_type": "index",
-        "key": "a",
-        "used_key_parts": [
-          "a",
-          "b"
-        ] /* used_key_parts */,
-        "key_length": "18",
+        "table_name": "<gather2>",
+        "access_type": "ALL",
         "rows_examined_per_scan": "X",
         "rows_produced_per_join": "X",
         "filtered": "X",
         "backward_index_scan": true,
+        "parallel_execute": "4 workers",
         "cost_info": {
           "read_cost": "X",
           "eval_cost": "X",
@@ -4675,7 +6282,36 @@ EXPLAIN
           "a",
           "b",
           "c"
-        ] /* used_columns */
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "select_id": 2,
+            "table_name": "t2",
+            "access_type": "index",
+            "key": "a",
+            "used_key_parts": [
+              "a",
+              "b"
+            ] /* used_key_parts */,
+            "key_length": "18",
+            "rows_examined_per_scan": "X",
+            "rows_produced_per_join": "X",
+            "filtered": "X",
+            "backward_index_scan": true,
+            "cost_info": {
+              "read_cost": "X",
+              "eval_cost": "X",
+              "prefix_cost": "X",
+              "data_read_per_join": "X"
+            } /* cost_info */,
+            "used_columns": [
+              "a",
+              "b",
+              "c"
+            ] /* used_columns */
+          } /* table */
+        } /* ordering_operation */
       } /* table */
     } /* ordering_operation */
   } /* query_block */
@@ -4686,7 +6322,7 @@ Note	1003	/* select#1 */ select `test`.`t2`.`a` AS `a`,`test`.`t2`.`b` AS `b`,`t
 Variable_name	Value
 Handler_read_key	4
 Handler_read_last	1
-Handler_read_prev	4
+Handler_read_rnd_next	20
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_key	9
@@ -4764,35 +6400,59 @@ EXPLAIN
     "ordering_operation": {
       "using_filesort": false,
       "table": {
-        "table_name": "t1",
-        "access_type": "ref",
-        "possible_keys": [
-          "c1_idx"
-        ] /* possible_keys */,
-        "key": "c1_idx",
-        "used_key_parts": [
-          "c1_idx"
-        ] /* used_key_parts */,
-        "key_length": "5",
-        "ref": [
-          "const"
-        ] /* ref */,
+        "table_name": "<gather2>",
+        "access_type": "ALL",
         "rows_examined_per_scan": 2,
         "rows_produced_per_join": 2,
         "filtered": "100.00",
         "backward_index_scan": true,
+        "parallel_execute": "1 workers",
         "cost_info": {
           "read_cost": "0.50",
           "eval_cost": "0.20",
           "prefix_cost": "0.70",
-          "data_read_per_join": "32"
+          "data_read_per_join": "48"
         } /* cost_info */,
         "used_columns": [
           "pk",
           "c1_idx",
           "c2"
         ] /* used_columns */,
-        "attached_condition": "(`test`.`t1`.`c1_idx` = 'y')"
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "select_id": 2,
+            "table_name": "t1",
+            "access_type": "ref",
+            "possible_keys": [
+              "c1_idx"
+            ] /* possible_keys */,
+            "key": "c1_idx",
+            "used_key_parts": [
+              "c1_idx"
+            ] /* used_key_parts */,
+            "key_length": "5",
+            "ref": [
+              "const"
+            ] /* ref */,
+            "rows_examined_per_scan": 2,
+            "rows_produced_per_join": 2,
+            "filtered": "100.00",
+            "backward_index_scan": true,
+            "cost_info": {
+              "read_cost": "0.50",
+              "eval_cost": "0.20",
+              "prefix_cost": "0.70",
+              "data_read_per_join": "32"
+            } /* cost_info */,
+            "used_columns": [
+              "pk",
+              "c1_idx",
+              "c2"
+            ] /* used_columns */,
+            "attached_condition": "(`test`.`t1`.`c1_idx` = 'y')"
+          } /* table */
+        } /* ordering_operation */
       } /* table */
     } /* ordering_operation */
   } /* query_block */
@@ -4801,8 +6461,8 @@ Warnings:
 Note	1003	/* select#1 */ select `test`.`t1`.`pk` AS `pk`,`test`.`t1`.`c1_idx` AS `c1_idx`,`test`.`t1`.`c2` AS `c2` from `test`.`t1` where (`test`.`t1`.`c1_idx` = 'y') order by `test`.`t1`.`pk` desc limit 2
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
-Handler_read_key	4
-Handler_read_prev	1
+Handler_read_key	6
+Handler_read_rnd_next	2
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_key	6
@@ -4868,35 +6528,59 @@ EXPLAIN
     "ordering_operation": {
       "using_filesort": false,
       "table": {
-        "table_name": "t1",
-        "access_type": "ref",
-        "possible_keys": [
-          "c1_idx"
-        ] /* possible_keys */,
-        "key": "c1_idx",
-        "used_key_parts": [
-          "c1_idx"
-        ] /* used_key_parts */,
-        "key_length": "5",
-        "ref": [
-          "const"
-        ] /* ref */,
+        "table_name": "<gather2>",
+        "access_type": "ALL",
         "rows_examined_per_scan": 2,
         "rows_produced_per_join": 2,
         "filtered": "100.00",
         "backward_index_scan": true,
+        "parallel_execute": "1 workers",
         "cost_info": {
           "read_cost": "0.50",
           "eval_cost": "0.20",
           "prefix_cost": "0.70",
-          "data_read_per_join": "32"
+          "data_read_per_join": "48"
         } /* cost_info */,
         "used_columns": [
           "pk",
           "c1_idx",
           "c2"
         ] /* used_columns */,
-        "attached_condition": "(`test`.`t1`.`c1_idx` = 'y')"
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "select_id": 2,
+            "table_name": "t1",
+            "access_type": "ref",
+            "possible_keys": [
+              "c1_idx"
+            ] /* possible_keys */,
+            "key": "c1_idx",
+            "used_key_parts": [
+              "c1_idx"
+            ] /* used_key_parts */,
+            "key_length": "5",
+            "ref": [
+              "const"
+            ] /* ref */,
+            "rows_examined_per_scan": 2,
+            "rows_produced_per_join": 2,
+            "filtered": "100.00",
+            "backward_index_scan": true,
+            "cost_info": {
+              "read_cost": "0.50",
+              "eval_cost": "0.20",
+              "prefix_cost": "0.70",
+              "data_read_per_join": "32"
+            } /* cost_info */,
+            "used_columns": [
+              "pk",
+              "c1_idx",
+              "c2"
+            ] /* used_columns */,
+            "attached_condition": "(`test`.`t1`.`c1_idx` = 'y')"
+          } /* table */
+        } /* ordering_operation */
       } /* table */
     } /* ordering_operation */
   } /* query_block */
@@ -4905,8 +6589,8 @@ Warnings:
 Note	1003	/* select#1 */ select `test`.`t1`.`pk` AS `pk`,`test`.`t1`.`c1_idx` AS `c1_idx`,`test`.`t1`.`c2` AS `c2` from `test`.`t1` where (`test`.`t1`.`c1_idx` = 'y') order by `test`.`t1`.`pk` desc limit 2
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
-Handler_read_key	4
-Handler_read_prev	1
+Handler_read_key	6
+Handler_read_rnd_next	2
 # Status of testing query execution:
 Variable_name	Value
 Handler_delete	2
@@ -4963,11 +6647,70 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1     WHERE a > 34;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "0.91"
+    } /* cost_info */,
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 2,
+      "rows_produced_per_join": 2,
+      "filtered": "100.00",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.71",
+        "eval_cost": "0.20",
+        "prefix_cost": "0.91",
+        "data_read_per_join": "32"
+      } /* cost_info */,
+      "used_columns": [
+        "a"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "0.91"
+        } /* cost_info */,
+        "table": {
+          "select_id": 2,
+          "table_name": "t1",
+          "access_type": "range",
+          "possible_keys": [
+            "PRIMARY"
+          ] /* possible_keys */,
+          "key": "PRIMARY",
+          "used_key_parts": [
+            "a"
+          ] /* used_key_parts */,
+          "key_length": "4",
+          "rows_examined_per_scan": 2,
+          "rows_produced_per_join": 2,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "0.71",
+            "eval_cost": "0.20",
+            "prefix_cost": "0.91",
+            "data_read_per_join": "16"
+          } /* cost_info */,
+          "used_columns": [
+            "a"
+          ] /* used_columns */,
+          "attached_condition": "(`test`.`t1`.`a` > 34)"
+        } /* table */
+      } /* query_block */
+    } /* table */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`a` AS `a` from `test`.`t1` where (`test`.`t1`.`a` > 34)
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
-Handler_read_key	2
+Handler_read_key	3
+Handler_read_last	1
+Handler_read_rnd_next	3
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_key	4
@@ -5057,49 +6800,77 @@ EXPLAIN
     "cost_info": {
       "query_cost": "0.90"
     } /* cost_info */,
-    "nested_loop": [
-      {
-        "table": {
-          "table_name": "t1",
-          "access_type": "ALL",
-          "rows_examined_per_scan": 2,
-          "rows_produced_per_join": 2,
-          "filtered": "100.00",
-          "cost_info": {
-            "read_cost": "0.25",
-            "eval_cost": "0.20",
-            "prefix_cost": "0.45",
-            "data_read_per_join": "32"
-          } /* cost_info */,
-          "used_columns": [
-            "c1",
-            "c2",
-            "c3"
-          ] /* used_columns */
-        } /* table */
-      },
-      {
-        "table": {
-          "table_name": "t2",
-          "access_type": "ALL",
-          "rows_examined_per_scan": 1,
-          "rows_produced_per_join": 2,
-          "filtered": "100.00",
-          "using_join_buffer": "Block Nested Loop",
-          "cost_info": {
-            "read_cost": "0.25",
-            "eval_cost": "0.20",
-            "prefix_cost": "0.90",
-            "data_read_per_join": "32"
-          } /* cost_info */,
-          "used_columns": [
-            "c1",
-            "c2"
-          ] /* used_columns */,
-          "attached_condition": "<if>(is_not_null_compl(t2), (`test`.`t2`.`c1` = `test`.`t1`.`c1`), true)"
-        } /* table */
-      }
-    ] /* nested_loop */
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 2,
+      "rows_produced_per_join": 2,
+      "filtered": "100.00",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.25",
+        "eval_cost": "0.20",
+        "prefix_cost": "0.45",
+        "data_read_per_join": "64"
+      } /* cost_info */,
+      "used_columns": [
+        "c1",
+        "c2",
+        "c3",
+        "c1",
+        "c2"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "0.90"
+        } /* cost_info */,
+        "nested_loop": [
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t1",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 2,
+              "rows_produced_per_join": 2,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.25",
+                "eval_cost": "0.20",
+                "prefix_cost": "0.45",
+                "data_read_per_join": "32"
+              } /* cost_info */,
+              "used_columns": [
+                "c1",
+                "c2",
+                "c3"
+              ] /* used_columns */
+            } /* table */
+          },
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t2",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 2,
+              "filtered": "100.00",
+              "using_join_buffer": "hash join",
+              "cost_info": {
+                "read_cost": "0.25",
+                "eval_cost": "0.20",
+                "prefix_cost": "0.90",
+                "data_read_per_join": "32"
+              } /* cost_info */,
+              "used_columns": [
+                "c1",
+                "c2"
+              ] /* used_columns */,
+              "attached_condition": "<if>(is_not_null_compl(t2), (`test`.`t2`.`c1` = `test`.`t1`.`c1`), true)"
+            } /* table */
+          }
+        ] /* nested_loop */
+      } /* query_block */
+    } /* table */
   } /* query_block */
 }
 Warnings:
@@ -5194,50 +6965,78 @@ EXPLAIN
     "cost_info": {
       "query_cost": "0.80"
     } /* cost_info */,
-    "nested_loop": [
-      {
-        "table": {
-          "table_name": "t1",
-          "access_type": "ALL",
-          "rows_examined_per_scan": 2,
-          "rows_produced_per_join": 1,
-          "filtered": "50.00",
-          "cost_info": {
-            "read_cost": "0.35",
-            "eval_cost": "0.10",
-            "prefix_cost": "0.45",
-            "data_read_per_join": "16"
-          } /* cost_info */,
-          "used_columns": [
-            "c1",
-            "c2",
-            "c3"
-          ] /* used_columns */,
-          "attached_condition": "(`test`.`t1`.`c3` = 10)"
-        } /* table */
-      },
-      {
-        "table": {
-          "table_name": "t2",
-          "access_type": "ALL",
-          "rows_examined_per_scan": 1,
-          "rows_produced_per_join": 1,
-          "filtered": "100.00",
-          "using_join_buffer": "Block Nested Loop",
-          "cost_info": {
-            "read_cost": "0.25",
-            "eval_cost": "0.10",
-            "prefix_cost": "0.80",
-            "data_read_per_join": "16"
-          } /* cost_info */,
-          "used_columns": [
-            "c1",
-            "c2"
-          ] /* used_columns */,
-          "attached_condition": "<if>(is_not_null_compl(t2), (`test`.`t2`.`c1` = `test`.`t1`.`c1`), true)"
-        } /* table */
-      }
-    ] /* nested_loop */
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 2,
+      "rows_produced_per_join": 1,
+      "filtered": "50.00",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.35",
+        "eval_cost": "0.10",
+        "prefix_cost": "0.45",
+        "data_read_per_join": "32"
+      } /* cost_info */,
+      "used_columns": [
+        "c1",
+        "c2",
+        "c3",
+        "c1",
+        "c2"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "0.80"
+        } /* cost_info */,
+        "nested_loop": [
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t1",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 2,
+              "rows_produced_per_join": 1,
+              "filtered": "50.00",
+              "cost_info": {
+                "read_cost": "0.35",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.45",
+                "data_read_per_join": "16"
+              } /* cost_info */,
+              "used_columns": [
+                "c1",
+                "c2",
+                "c3"
+              ] /* used_columns */,
+              "attached_condition": "(`test`.`t1`.`c3` = 10)"
+            } /* table */
+          },
+          {
+            "table": {
+              "select_id": 2,
+              "table_name": "t2",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 1,
+              "filtered": "100.00",
+              "using_join_buffer": "hash join",
+              "cost_info": {
+                "read_cost": "0.25",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.80",
+                "data_read_per_join": "16"
+              } /* cost_info */,
+              "used_columns": [
+                "c1",
+                "c2"
+              ] /* used_columns */,
+              "attached_condition": "<if>(is_not_null_compl(t2), (`test`.`t2`.`c1` = `test`.`t1`.`c1`), true)"
+            } /* table */
+          }
+        ] /* nested_loop */
+      } /* query_block */
+    } /* table */
   } /* query_block */
 }
 Warnings:
@@ -5564,7 +7363,7 @@ EXPLAIN
           "rows_examined_per_scan": 2,
           "rows_produced_per_join": 2,
           "filtered": "100.00",
-          "using_join_buffer": "Block Nested Loop",
+          "using_join_buffer": "hash join",
           "cost_info": {
             "read_cost": "0.25",
             "eval_cost": "0.20",
@@ -5712,7 +7511,7 @@ EXPLAIN
           "rows_examined_per_scan": 2,
           "rows_produced_per_join": 2,
           "filtered": "50.00",
-          "using_join_buffer": "Block Nested Loop",
+          "using_join_buffer": "hash join",
           "cost_info": {
             "read_cost": "0.25",
             "eval_cost": "0.20",
@@ -5732,7 +7531,7 @@ EXPLAIN
           "rows_examined_per_scan": 2,
           "rows_produced_per_join": 4,
           "filtered": "100.00",
-          "using_join_buffer": "Block Nested Loop",
+          "using_join_buffer": "hash join",
           "cost_info": {
             "read_cost": "0.25",
             "eval_cost": "0.40",
@@ -6301,12 +8100,60 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT * FROM t1;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "0.35"
+    } /* cost_info */,
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 1,
+      "rows_produced_per_join": 1,
+      "filtered": "100.00",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.25",
+        "eval_cost": "0.10",
+        "prefix_cost": "0.35",
+        "data_read_per_join": "16"
+      } /* cost_info */,
+      "used_columns": [
+        "a"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "0.35"
+        } /* cost_info */,
+        "table": {
+          "select_id": 2,
+          "table_name": "t1",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1,
+          "rows_produced_per_join": 1,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "0.25",
+            "eval_cost": "0.10",
+            "prefix_cost": "0.35",
+            "data_read_per_join": "8"
+          } /* cost_info */,
+          "used_columns": [
+            "a"
+          ] /* used_columns */
+        } /* table */
+      } /* query_block */
+    } /* table */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`a` AS `a` from `test`.`t1`
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_first	1
 Handler_read_key	2
+Handler_read_rnd_next	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_first	1
@@ -6795,7 +8642,7 @@ EXPLAIN
           "rows_examined_per_scan": 3,
           "rows_produced_per_join": 9,
           "filtered": "100.00",
-          "using_join_buffer": "Block Nested Loop",
+          "using_join_buffer": "hash join",
           "cost_info": {
             "read_cost": "0.25",
             "eval_cost": "0.90",
@@ -7077,7 +8924,7 @@ EXPLAIN
           "rows_examined_per_scan": 3,
           "rows_produced_per_join": 9,
           "filtered": "100.00",
-          "using_join_buffer": "Block Nested Loop",
+          "using_join_buffer": "hash join",
           "cost_info": {
             "read_cost": "0.25",
             "eval_cost": "0.90",
@@ -7128,7 +8975,7 @@ id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered
 1	UPDATE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
 2	SUBQUERY	<derived3>	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	NULL
 3	DERIVED	a11	NULL	index	PRIMARY	PRIMARY	4	NULL	1	100.00	Using index
-3	DERIVED	a21	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (Block Nested Loop)
+3	DERIVED	a21	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
 3	DERIVED	a12	NULL	eq_ref	PRIMARY	PRIMARY	4	test.a11.c1	1	100.00	Using index
 Warnings:
 Note	1003	update `test`.`t3` set `test`.`t3`.`c3` = (/* select#2 */ select count(`d1`.`c1`) from (/* select#3 */ select `test`.`a11`.`c1` AS `c1` from `test`.`t1` `a11` straight_join `test`.`t2` `a21` join `test`.`t1` `a12` where ((`test`.`a21`.`c2` = `test`.`a11`.`c1`) and (`test`.`a12`.`c1` = `test`.`a11`.`c1`))) `d1`)
@@ -7152,8 +8999,9 @@ CREATE TABLE t2 (id INT);
 INSERT INTO t1 VALUES (1), (2);
 EXPLAIN SELECT * FROM t1 LEFT JOIN t2 USING(id) GROUP BY t1.id;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using temporary
-1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (Block Nested Loop)
+1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Parallel execute (1 workers)
+2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using temporary
+2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
 Warnings:
 Note	1003	/* select#1 */ select `test`.`t1`.`id` AS `id` from `test`.`t1` left join `test`.`t2` on((`test`.`t2`.`id` = `test`.`t1`.`id`)) where true group by `test`.`t1`.`id`
 DROP TABLE t1,t2;
@@ -7207,11 +9055,69 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT a t1 FROM t1 WHERE a>10;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "0.46"
+    } /* cost_info */,
+    "table": {
+      "table_name": "<gather2>",
+      "access_type": "ALL",
+      "rows_examined_per_scan": 1,
+      "rows_produced_per_join": 1,
+      "filtered": "100.00",
+      "parallel_execute": "1 workers",
+      "cost_info": {
+        "read_cost": "0.36",
+        "eval_cost": "0.10",
+        "prefix_cost": "0.46",
+        "data_read_per_join": "16"
+      } /* cost_info */,
+      "used_columns": [
+        "a"
+      ] /* used_columns */,
+      "query_block": {
+        "cost_info": {
+          "query_cost": "0.46"
+        } /* cost_info */,
+        "table": {
+          "select_id": 2,
+          "table_name": "t1",
+          "access_type": "range",
+          "possible_keys": [
+            "PRIMARY"
+          ] /* possible_keys */,
+          "key": "PRIMARY",
+          "used_key_parts": [
+            "a"
+          ] /* used_key_parts */,
+          "key_length": "4",
+          "rows_examined_per_scan": 1,
+          "rows_produced_per_join": 1,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "0.36",
+            "eval_cost": "0.10",
+            "prefix_cost": "0.46",
+            "data_read_per_join": "8"
+          } /* cost_info */,
+          "used_columns": [
+            "a"
+          ] /* used_columns */,
+          "attached_condition": "(`test`.`t1`.`a` > 10)"
+        } /* table */
+      } /* query_block */
+    } /* table */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`a` AS `t1` from `test`.`t1` where (`test`.`t1`.`a` > 10)
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_key	2
+Handler_read_rnd_next	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_key	2
@@ -7265,16 +9171,79 @@ FLUSH TABLES;
 Variable_name	Value
 EXPLAIN FORMAT=JSON SELECT a t1 FROM t1 WHERE a>10 ORDER BY a+20;;
 EXPLAIN
-<Json format not executable by parallel execute>
- 
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "1.46"
+    } /* cost_info */,
+    "ordering_operation": {
+      "using_filesort": true,
+      "cost_info": {
+        "sort_cost": "1.00"
+      } /* cost_info */,
+      "table": {
+        "table_name": "<gather2>",
+        "access_type": "ALL",
+        "rows_examined_per_scan": 1,
+        "rows_produced_per_join": 1,
+        "filtered": "100.00",
+        "parallel_execute": "1 workers",
+        "cost_info": {
+          "read_cost": "0.36",
+          "eval_cost": "0.10",
+          "prefix_cost": "0.46",
+          "data_read_per_join": "24"
+        } /* cost_info */,
+        "used_columns": [
+          "(t1.a + 20)",
+          "a"
+        ] /* used_columns */,
+        "ordering_operation": {
+          "using_filesort": true,
+          "table": {
+            "select_id": 2,
+            "table_name": "t1",
+            "access_type": "range",
+            "possible_keys": [
+              "PRIMARY"
+            ] /* possible_keys */,
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "a"
+            ] /* used_key_parts */,
+            "key_length": "4",
+            "rows_examined_per_scan": 1,
+            "rows_produced_per_join": 1,
+            "filtered": "100.00",
+            "using_index": true,
+            "cost_info": {
+              "read_cost": "0.36",
+              "eval_cost": "0.10",
+              "prefix_cost": "0.46",
+              "data_read_per_join": "8"
+            } /* cost_info */,
+            "used_columns": [
+              "a"
+            ] /* used_columns */,
+            "attached_condition": "(`test`.`t1`.`a` > 10)"
+          } /* table */
+        } /* ordering_operation */
+      } /* table */
+    } /* ordering_operation */
+  } /* query_block */
+}
+Warnings:
+Note	1003	/* select#1 */ select `test`.`t1`.`a` AS `t1` from `test`.`t1` where (`test`.`t1`.`a` > 10) order by `(t1.a + 20)`
 # Status of "equivalent" SELECT query execution:
 Variable_name	Value
 Handler_read_key	2
-Sort_range	4
+Handler_read_rnd_next	1
+Sort_scan	1
 # Status of testing query execution:
 Variable_name	Value
 Handler_read_key	2
-Sort_range	1
+Sort_scan	1
 
 DROP TABLE t1;
 #
