@@ -63,6 +63,7 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "ut0new.h"
 #include "ut0pool.h"
 #include "ut0vec.h"
+#include "undo_spaces_snapshot.h"
 
 #include "my_dbug.h"
 #include "mysql/plugin.h"
@@ -1034,12 +1035,31 @@ until the transaction is done with it.
 static trx_rseg_t *get_next_redo_rseg_from_undo_spaces() {
   undo::Tablespace *undo_space;
 
-  /* The number of undo tablespaces cannot be changed while
-  we have this s_lock. */
-  undo::spaces->s_lock();
+  bool use_no_latch = undo::undo_spaces_snapshot->request_ticket();
+  ulint target_undo_tablespaces = 0;
+  if (use_no_latch) {
+    target_undo_tablespaces =
+        undo::undo_spaces_snapshot->get_target_undo_tablespaces_size();
+    // Undospace marked for truancate is not included in target_undo_tablespaces.
+    if (target_undo_tablespaces == 0) {
+      undo::undo_spaces_snapshot->return_ticket();
+      use_no_latch = false;
+    }
+  }
 
-  /* Use all known undo tablespaces.  Some may be inactive. */
-  ulint target_undo_tablespaces = undo::spaces->size();
+  if (!use_no_latch) {
+    DBUG_EXECUTE_IF("abort_if_use_undospace_latch",{
+      ib::info() << "Server will crash by intention. This macro is used only in test cases.";
+      ut_error;
+    });
+
+    /* The number of undo tablespaces cannot be changed while
+    we have this s_lock. */
+    undo::spaces->s_lock();
+
+    /* Use all known undo tablespaces.  Some may be inactive. */
+    target_undo_tablespaces = undo::spaces->size();
+  }
 
   ut_ad(target_undo_tablespaces > 0);
 
@@ -1067,7 +1087,11 @@ static trx_rseg_t *get_next_redo_rseg_from_undo_spaces() {
 
     current++;
 
-    undo_space = undo::spaces->at(spaces_slot);
+    if (use_no_latch) {
+      undo_space = undo::undo_spaces_snapshot->at(spaces_slot);
+    } else {
+      undo_space = undo::spaces->at(spaces_slot);
+    }
 
     /* Avoid any rseg that resides in a tablespace that has been made
     inactive either explicitly or by being marked for truncate. We do
@@ -1089,7 +1113,12 @@ static trx_rseg_t *get_next_redo_rseg_from_undo_spaces() {
     }
   }
 
-  undo::spaces->s_unlock();
+  if (use_no_latch) {
+    undo::undo_spaces_snapshot->return_ticket();
+  }
+  else {
+    undo::spaces->s_unlock();
+  }
 
   ut_ad(rseg->trx_ref_count > 0);
 
