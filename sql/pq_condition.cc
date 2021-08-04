@@ -680,7 +680,10 @@ bool check_pq_select_fields(JOIN *join) {
 /**
  * choose a table that do parallel query, currently only do parallel scan on
  * first no-const primary table.
- *
+ * Disallow splitting inner tables, such as select * from t1 left join t2 on 1
+ * where t1.a = 't1'. We can't split t2 when t1 is const table.
+ * Disallow splitting semijion inner tables,such as select * from t1 where exists (select * from t2).
+ * We can't split t2.
  *
  * @return:
  *    true, found a parallel scan table
@@ -688,6 +691,9 @@ bool check_pq_select_fields(JOIN *join) {
  */
 bool choose_parallel_scan_table(JOIN *join) {
   QEP_TAB *tab = &join->qep_tab[join->const_tables];
+  if (tab->is_inner_table_of_outer_join() || tab->m_qs->first_sj_inner() >= 0) {
+    return false;
+  }
   tab->do_parallel_scan = true;
   return true;
 }

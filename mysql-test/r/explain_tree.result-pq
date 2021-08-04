@@ -148,11 +148,10 @@ test.t1	analyze	status	OK
 test.t2	analyze	status	OK
 EXPLAIN FORMAT=tree SELECT * FROM t1 LEFT JOIN t2 USING (f1) WHERE t1.f1=2;
 EXPLAIN
--> Parallel scan on <temporary>
-    -> Nested loop left join
-        -> Rows fetched before execution
-        -> Filter: (t2.f1 = 2)  (cost=0.55 rows=3)
-            -> PQblock scan on t2  (cost=0.55 rows=3)
+-> Nested loop left join
+    -> Rows fetched before execution
+    -> Filter: (t2.f1 = 2)  (cost=0.55 rows=3)
+        -> Table scan on t2  (cost=0.55 rows=3)
 
 DROP TABLE t1, t2;
 CREATE TABLE t1 ( a INT );
@@ -552,12 +551,11 @@ test.t1	analyze	status	OK
 test.t2	analyze	status	OK
 EXPLAIN FORMAT=tree SELECT * FROM t1,t2 WHERE (t1.i) IN (SELECT t3.i FROM t3,t4) AND t1.pk = 2 AND t2.pk = 4;
 EXPLAIN
--> Parallel scan on <temporary>
-    -> Limit: 1 row(s)
-        -> Nested loop inner join  (cost=0.70 rows=1)
-            -> Filter: (t3.i = '3')  (cost=0.35 rows=1)
-                -> PQblock scan on t3  (cost=0.35 rows=1)
-            -> Table scan on t4  (cost=0.35 rows=1)
+-> Limit: 1 row(s)
+    -> Nested loop inner join  (cost=0.70 rows=1)
+        -> Filter: (t3.i = '3')  (cost=0.35 rows=1)
+            -> Table scan on t3  (cost=0.35 rows=1)
+        -> Table scan on t4  (cost=0.35 rows=1)
 
 DROP TABLE t1, t2, t3, t4;
 CREATE TABLE t1 (i INTEGER);
@@ -646,12 +644,11 @@ test.t1	analyze	status	OK
 test.t2	analyze	status	OK
 EXPLAIN FORMAT=tree SELECT * FROM t1 WHERE (t1.i) IN (SELECT t2.i FROM t2);
 EXPLAIN
--> Parallel scan on <temporary>
-    -> Remove duplicate t1 rows using temporary table (weedout)  (cost=0.90 rows=1)
-        -> Nested loop inner join  (cost=0.90 rows=1)
-            -> PQblock scan on t2  (cost=0.35 rows=1)
-            -> Filter: (t1.i = t2.i)  (cost=0.35 rows=1)
-                -> Table scan on t1  (cost=0.35 rows=3)
+-> Remove duplicate t1 rows using temporary table (weedout)  (cost=0.90 rows=1)
+    -> Nested loop inner join  (cost=0.90 rows=1)
+        -> Table scan on t2  (cost=0.35 rows=1)
+        -> Filter: (t1.i = t2.i)  (cost=0.35 rows=1)
+            -> Table scan on t1  (cost=0.35 rows=3)
 
 DROP TABLE t1;
 DROP TABLE t2;
@@ -690,12 +687,11 @@ test.t1	analyze	status	OK
 test.t2	analyze	status	OK
 EXPLAIN format=tree SELECT * FROM t1 WHERE t1.i IN (SELECT t2.i FROM t2);
 EXPLAIN
--> Parallel scan on <temporary>
-    -> Nested loop inner join
-        -> Remove duplicates from input sorted on i1
-            -> Filter: (t2.i is not null)  (cost=0.65 rows=4)
-                -> PQblock scan on t2 using i1  (cost=0.65 rows=4)
-        -> Single-row index lookup on t1 using PRIMARY (i=t2.i)  (cost=1.10 rows=1)
+-> Nested loop inner join
+    -> Remove duplicates from input sorted on i1
+        -> Filter: (t2.i is not null)  (cost=0.65 rows=4)
+            -> Index scan on t2 using i1  (cost=0.65 rows=4)
+    -> Single-row index lookup on t1 using PRIMARY (i=t2.i)  (cost=1.10 rows=1)
 
 DROP TABLE t1;
 DROP TABLE t2;

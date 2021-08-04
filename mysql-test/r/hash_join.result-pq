@@ -1137,23 +1137,21 @@ COUNT(*) FROM t1 JOIN t2 AS ta3 JOIN t2 AS ta4
 WHERE ta4.f1 IN (SELECT /*+ QB_NAME(qb1) */ f1 FROM t4) AND
 ta3.f2 IN (SELECT /*+ QB_NAME(qb2) */ f2 FROM t2);
 EXPLAIN
--> Aggregate: count(`COUNT(*)`)
-    -> Parallel scan on <temporary>
-        -> Aggregate: count(0)
-            -> Inner hash join (no condition)  (cost=3.70 rows=4)
-                -> Table scan on t1  (cost=0.08 rows=1)
-                -> Hash
-                    -> Remove duplicate (ta3, ta4) rows using temporary table (weedout)  (cost=3.00 rows=4)
-                        -> Nested loop inner join  (cost=3.00 rows=4)
-                            -> Nested loop inner join  (cost=2.30 rows=4)
-                                -> Inner hash join (no condition)  (cost=1.10 rows=3)
-                                    -> Filter: (t4.f1 is not null)  (cost=0.12 rows=1)
-                                        -> Table scan on t4  (cost=0.12 rows=1)
-                                    -> Hash
-                                        -> Filter: (t2.f2 is not null)  (cost=0.55 rows=3)
-                                            -> PQblock scan on t2 using f2  (cost=0.55 rows=3)
-                                -> Index lookup on ta3 using f2 (f2=t2.f2)  (cost=0.30 rows=2)
-                            -> Single-row index lookup on ta4 using PRIMARY (f1=t4.f1)  (cost=0.08 rows=1)
+-> Aggregate: count(0)
+    -> Inner hash join (no condition)  (cost=3.70 rows=4)
+        -> Table scan on t1  (cost=0.08 rows=1)
+        -> Hash
+            -> Remove duplicate (ta3, ta4) rows using temporary table (weedout)  (cost=3.00 rows=4)
+                -> Nested loop inner join  (cost=3.00 rows=4)
+                    -> Nested loop inner join  (cost=2.30 rows=4)
+                        -> Inner hash join (no condition)  (cost=1.10 rows=3)
+                            -> Filter: (t4.f1 is not null)  (cost=0.12 rows=1)
+                                -> Table scan on t4  (cost=0.12 rows=1)
+                            -> Hash
+                                -> Filter: (t2.f2 is not null)  (cost=0.55 rows=3)
+                                    -> Index scan on t2 using f2  (cost=0.55 rows=3)
+                        -> Index lookup on ta3 using f2 (f2=t2.f2)  (cost=0.30 rows=2)
+                    -> Single-row index lookup on ta4 using PRIMARY (f1=t4.f1)  (cost=0.08 rows=1)
 
 SELECT /*+ JOIN_PREFIX(t2@qb2, t4@qb1, ta3, ta4) */
 COUNT(*) FROM t1 JOIN t2 AS ta3 JOIN t2 AS ta4
