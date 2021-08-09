@@ -8908,9 +8908,8 @@ WHERE col_varchar_key IN (SELECT col_varchar_nokey
 FROM t2)
 ORDER BY col_datetime_key LIMIT 4;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	6	100.00	Parallel execute (1 workers)
-2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	6	100.00	Using temporary; Using filesort; Start temporary
-2	SIMPLE	t1	NULL	ref	col_varchar_key	col_varchar_key	6	test.t2.col_varchar_nokey	1	100.00	End temporary
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	6	100.00	Using temporary; Using filesort; Start temporary
+1	SIMPLE	t1	NULL	ref	col_varchar_key	col_varchar_key	6	test.t2.col_varchar_nokey	1	100.00	End temporary
 Warnings:
 Note	1003	/* select#1 */ select `test`.`t1`.`col_varchar_key` AS `col_varchar_key` from `test`.`t1` semi join (`test`.`t2`) where (`test`.`t1`.`col_varchar_key` = `test`.`t2`.`col_varchar_nokey`) order by `test`.`t1`.`col_datetime_key` limit 4
 SELECT col_varchar_key
@@ -12099,9 +12098,8 @@ WHERE innr.pk <= 7
 )
 ;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	innr	NULL	range	PRIMARY,col_varchar_key	PRIMARY	4	NULL	1	100.00	Using where; Start temporary
-2	SIMPLE	outr	NULL	ALL	NULL	NULL	NULL	NULL	3	33.33	Using where; End temporary; Using join buffer (hash join)
+1	SIMPLE	innr	NULL	range	PRIMARY,col_varchar_key	PRIMARY	4	NULL	1	100.00	Using where; Start temporary
+1	SIMPLE	outr	NULL	ALL	NULL	NULL	NULL	NULL	3	33.33	Using where; End temporary; Using join buffer (hash join)
 Warnings:
 Note	1003	/* select#1 */ select 1 AS `1` from `test`.`t1` `outr` semi join (`test`.`t2` `innr`) where ((`test`.`outr`.`col_varchar_nokey` = `test`.`innr`.`col_varchar_key`) and (`test`.`innr`.`pk` <= 7))
 SELECT 1
@@ -12827,18 +12825,17 @@ test.t1	analyze	status	OK
 test.t2	analyze	status	OK
 EXPLAIN FORMAT=tree SELECT * FROM t1 WHERE EXISTS ( SELECT alias1.f2 FROM t2 LEFT JOIN t1 ON 1 LEFT JOIN t1 AS alias1 ON 1 );
 EXPLAIN
--> Parallel scan on <temporary>
-    -> Remove duplicate t1 rows using temporary table (weedout)  (cost=6.20 rows=54)
-        -> Left hash join (no condition)  (cost=6.20 rows=54)
-            -> Left hash join (no condition)  (cost=2.14 rows=18)
-                -> Inner hash join (no condition)  (cost=1.30 rows=6)
-                    -> Table scan on t1  (cost=0.28 rows=3)
-                    -> Hash
-                        -> PQblock scan on t2  (cost=0.45 rows=2)
+-> Remove duplicate t1 rows using temporary table (weedout)  (cost=6.20 rows=54)
+    -> Left hash join (no condition)  (cost=6.20 rows=54)
+        -> Left hash join (no condition)  (cost=2.14 rows=18)
+            -> Inner hash join (no condition)  (cost=1.30 rows=6)
+                -> Table scan on t1  (cost=0.28 rows=3)
                 -> Hash
-                    -> Table scan on t1  (cost=0.09 rows=3)
+                    -> Table scan on t2  (cost=0.45 rows=2)
             -> Hash
-                -> Table scan on alias1  (cost=0.55 rows=3)
+                -> Table scan on t1  (cost=0.09 rows=3)
+        -> Hash
+            -> Table scan on alias1  (cost=0.55 rows=3)
 
 SELECT * FROM t1 WHERE EXISTS ( SELECT alias1.f2 FROM t2 LEFT JOIN t1 ON 1 LEFT JOIN t1 AS alias1 ON 1 );
 f1	f2
