@@ -9,3 +9,4 @@ main.ssl_crl_crlpath                              : BUG#111 skip example
 main.file_contents                                : BUG#111 skip example
 main.read_only_ddl                                : BUG#111 skip example
 main.log_buffered-big                             : BUG#111 skip example
+main.subquery_mat_mixed_types                     : BUG#111 skip example

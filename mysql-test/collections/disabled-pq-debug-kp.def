@@ -9,3 +9,4 @@ main.ssl_crl_clients_valid  : BUG#111 origin code failed
 main.ssl_crl_crlpath  : BUG#111 origin code failed
 sys_vars.innodb_buffer_pool_size_basic  : BUG#111 origin code failed
 innodb.innodb_bug30113362  : BUG#111 pq code add
+main.subquery_mat_mixed_types  : BUG#111 pq code add
