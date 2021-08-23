@@ -1089,6 +1089,7 @@ static trx_rseg_t *get_next_redo_rseg_from_undo_spaces() {
 
     if (use_no_latch) {
       undo_space = undo::undo_spaces_snapshot->at(spaces_slot);
+      ut_a(undo_space!=nullptr);
     } else {
       undo_space = undo::spaces->at(spaces_slot);
     }

@@ -14,7 +14,7 @@ Undo_spaces_snapshot::Undo_spaces_snapshot()
 Undo_spaces_snapshot::~Undo_spaces_snapshot() {}
 
 void Undo_spaces_snapshot::reset(const unsigned int max_tickets,
-                                 std::vector<Tablespace *> tablespaces) {
+                                 const std::vector<Tablespace *> &tablespaces) {
   m_used_tickets.store(0u, std::memory_order_release);
   m_tablespaces = tablespaces;
   m_max_tickets = max_tickets;

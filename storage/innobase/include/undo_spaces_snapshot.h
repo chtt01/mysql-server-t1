@@ -18,7 +18,7 @@ class Undo_spaces_snapshot {
   /* Reset the snapshot and tickets. The method should never be called when
    * block_until_tickets_returned is being executed. */
   void reset(const unsigned int max_tickets,
-             std::vector<Tablespace *> tablespaces);
+             const std::vector<Tablespace *> &tablespaces);
   /* Return the undo tablespaces size in the snapshot. */
   std::size_t get_target_undo_tablespaces_size();
   /* Return the tablespace pointer at pos, or nullptr if pos is out of bound. */
