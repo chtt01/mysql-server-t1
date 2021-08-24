@@ -86,8 +86,7 @@ const char* NO_PQ_SUPPORTED_FUNC_NO_ARGS [] = {
 };
 
 const Item_ref::Ref_Type NO_PQ_SUPPORTED_REF_TYPES[] = {
-    Item_ref::OUTER_REF,
-    Item_ref::AGGREGATE_REF
+  Item_ref::OUTER_REF
 };
 
 /**
@@ -206,11 +205,10 @@ bool check_pq_support_fieldtype_of_func_item(Item *item) {
 
   // check func args type
   for (uint i = 0; i < func->arg_count; i++) {
-    //c1: Item_func::args contain aggr. function, (i.e., Item_sum)
-    //c2: args contain unsupported fields
+    //c: args contain unsupported fields
     Item *arg_item = func->arguments()[i];
-    if (arg_item == nullptr || arg_item->type() == Item::SUM_FUNC_ITEM ||         //c1
-        !check_pq_support_fieldtype(arg_item)) {            //c2
+    if (arg_item == nullptr ||
+        !check_pq_support_fieldtype(arg_item)) {            //c
       return false;
     }
   }
@@ -283,8 +281,7 @@ bool check_pq_support_fieldtype_of_ref_item(Item *item) {
     return false;
   }
 
-  if (item_ref->ref[0]->type() == Item::SUM_FUNC_ITEM ||
-      !check_pq_support_fieldtype(item_ref->ref[0])) {
+  if (!check_pq_support_fieldtype(item_ref->ref[0])) {
     return false;
   }
 
