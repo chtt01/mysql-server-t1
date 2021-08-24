@@ -47,7 +47,7 @@ const Item_sum::Sumfunctype NO_PQ_SUPPORTED_AGG_FUNC_TYPES [] = {
   Item_sum::AVG_DISTINCT_FUNC,
   Item_sum::GROUP_CONCAT_FUNC,
   Item_sum::JSON_AGG_FUNC,
-  Item_sum::UDF_SUM_FUNC ,
+  Item_sum::UDF_SUM_FUNC,
   Item_sum::STD_FUNC,
   Item_sum::VARIANCE_FUNC
 };
@@ -144,7 +144,7 @@ bool pq_not_support_func(Item_func *func) {
  */
 bool pq_not_support_aggr_functype(Item_sum::Sumfunctype type) {
   for (const Item_sum::Sumfunctype &sum_func_type : NO_PQ_SUPPORTED_AGG_FUNC_TYPES) {
-    if (sum_func_type == type) {
+    if (type == sum_func_type) {
       return true;
     }
   }
@@ -205,11 +205,11 @@ bool check_pq_support_fieldtype_of_func_item(Item *item) {
   }
 
   // check func args type
-  for (uint i =0; i < func->arg_count; i++) {
+  for (uint i = 0; i < func->arg_count; i++) {
     //c1: Item_func::args contain aggr. function, (i.e., Item_sum)
     //c2: args contain unsupported fields
     Item *arg_item = func->arguments()[i];
-    if (!arg_item || arg_item->type() == Item::SUM_FUNC_ITEM ||         //c1
+    if (arg_item == nullptr || arg_item->type() == Item::SUM_FUNC_ITEM ||         //c1
         !check_pq_support_fieldtype(arg_item)) {            //c2
       return false;
     }
@@ -268,8 +268,7 @@ bool check_pq_support_fieldtype_of_sum_func_item(Item *item) {
     return false;
   }
 
-  for (uint i =0; i < sum->get_arg_count(); i++)
-  {
+  for (uint i = 0; i < sum->get_arg_count(); i++) {
     if (!check_pq_support_fieldtype(sum->get_arg(i))) {
       return false;
     }
@@ -280,7 +279,7 @@ bool check_pq_support_fieldtype_of_sum_func_item(Item *item) {
 
 bool check_pq_support_fieldtype_of_ref_item(Item *item) {  
   Item_ref *item_ref = down_cast<Item_ref *>(item);
-  if (!item_ref || pq_not_support_ref(item_ref)) {
+  if (item_ref == nullptr || pq_not_support_ref(item_ref)) {
     return false;
   }
 
@@ -299,7 +298,7 @@ bool check_pq_support_fieldtype_of_cache_item(Item *item) {
   }
 
   Item *example_item = item_cache->get_example();
-  if (!example_item || example_item->type() == Item::SUM_FUNC_ITEM ||         //c1
+  if (example_item == nullptr || example_item->type() == Item::SUM_FUNC_ITEM ||         //c1
       !check_pq_support_fieldtype(example_item)) {            //c2
     return false;
   }
@@ -312,7 +311,7 @@ bool check_pq_support_fieldtype_of_row_item(Item *item) {
   Item_row *row_item = down_cast<Item_row *>(item);
   for (uint i = 0; i < row_item->cols(); i++) {
     Item *n_item = row_item->element_index(i);
-    if (!n_item || n_item->type() == Item::SUM_FUNC_ITEM ||         //c1
+    if (n_item == nullptr || n_item->type() == Item::SUM_FUNC_ITEM ||         //c1
         !check_pq_support_fieldtype(n_item)) {             //c2
       return false;
     }
@@ -382,7 +381,7 @@ bool check_pq_support_fieldtype(Item *item) {
  *    false:
  */
 bool check_pq_sort_aggregation(const ORDER_with_src &order_list) {
-  if (!order_list.order) {
+  if (order_list.order == nullptr) {
     return false;
   }
 
@@ -426,7 +425,7 @@ bool pq_create_result_fields(THD *thd, Temp_table_param *param,
   }
 
   Func_ptr_array *copy_func = new (root) Func_ptr_array(root);
-  if (!copy_func) {
+  if (copy_func == nullptr) {
     return true;
   }
 
@@ -434,7 +433,7 @@ bool pq_create_result_fields(THD *thd, Temp_table_param *param,
   List_iterator_fast<Item> li(fields);
   Item *item;
   while ((item = li++)) {
-    Field *new_field = NULL;
+    Field *new_field = nullptr;
     Item::Type type = item->type();
     const bool is_sum_func =
         type == Item::SUM_FUNC_ITEM && !item->m_is_window_function;
@@ -491,7 +490,7 @@ bool pq_create_result_fields(THD *thd, Temp_table_param *param,
                              force_copy_fields, false, root) : nullptr;
       }
 
-      if (!new_field) {
+      if (new_field == nullptr) {
         DBUG_ASSERT(thd->is_fatal_error());
         return true;
       }
@@ -562,7 +561,7 @@ bool check_pq_select_result_fields(JOIN *join) {
   DBUG_ENTER("check result fields is suitable for parallel query or not");
   MEM_ROOT *pq_check_root = ::new MEM_ROOT();
   if (pq_check_root == nullptr) {
-	DBUG_RETURN(false);
+	  DBUG_RETURN(false);
   }
   
   init_sql_alloc(key_memory_thd_main_mem_root, pq_check_root,
@@ -586,7 +585,9 @@ bool check_pq_select_result_fields(JOIN *join) {
   if (tmp_param == nullptr) {
     // free the memory
     free_root(pq_check_root, MYF(0));
-    if (pq_check_root) ::delete pq_check_root;
+    if (pq_check_root) {
+      ::delete pq_check_root;
+    }
     DBUG_RETURN(suit_for_parallel);
   }
 
@@ -630,7 +631,9 @@ bool check_pq_select_result_fields(JOIN *join) {
 
   // free the memory
   free_root(pq_check_root, MYF(0));
-  if (pq_check_root) ::delete pq_check_root;
+  if (pq_check_root){
+    ::delete pq_check_root;
+  }
   DBUG_RETURN(suit_for_parallel);
 }
 
@@ -720,10 +723,9 @@ void set_pq_condition_status(THD *thd) {
 }
 
 bool suite_for_parallel_query(THD *thd) {
-  if (thd->in_sp_trigger  ||                   // store procedure or trigger
-      thd->m_attachable_trx   ||               // attachable transaction
-      thd->tx_isolation == ISO_SERIALIZABLE)   // serializable without snapshot read
-  {
+  if (thd->in_sp_trigger  ||                    // store procedure or trigger
+      thd->m_attachable_trx   ||                // attachable transaction
+      thd->tx_isolation == ISO_SERIALIZABLE) {  // serializable without snapshot read
     return false;
   }
 
@@ -731,7 +733,7 @@ bool suite_for_parallel_query(THD *thd) {
 }
 
 bool suite_for_parallel_query(LEX *lex) {
-  if (lex->in_execute_ps){
+  if (lex->in_execute_ps) {
 	  return false;
   }
   
@@ -739,7 +741,7 @@ bool suite_for_parallel_query(LEX *lex) {
 }
 	
 bool suite_for_parallel_query(SELECT_LEX_UNIT *unit) {
-  if (!unit->is_simple()){
+  if (!unit->is_simple()) {
 	  return false;
   }
   
@@ -759,10 +761,10 @@ bool suite_for_parallel_query(TABLE_LIST *tbl_list) {
 
   TABLE *tb = tbl_list->table;
   if (tb != nullptr &&
-      (tb->s->tmp_table != NO_TMP_TABLE ||         // template table
+      (tb->s->tmp_table != NO_TMP_TABLE ||          // template table
         tb->file->ht->db_type != DB_TYPE_INNODB ||  // Non-InnoDB table
         tb->part_info ||                            // partition table
-        tb->fulltext_searched)) {                     // fulltext match search
+        tb->fulltext_searched)) {                   // fulltext match search
     return false;
 	}
   return true; 
@@ -772,8 +774,7 @@ bool suite_for_parallel_query(SELECT_LEX *select) {
   if (select->first_inner_unit() != nullptr ||     // nesting subquery, including view〝derived table〝subquery condition and so on.
       select->outer_select() != nullptr ||         // nested subquery
       select->is_distinct() ||                     // select distinct
-      select->saved_windows_elements)              // windows function
-  {
+      select->saved_windows_elements) {            // windows function
     return false;
   }
   
@@ -804,7 +805,7 @@ bool suite_for_parallel_query(JOIN *join) {
   }
   QEP_TAB *tab = &join->qep_tab[join->const_tables];
   // only support table/index full/range scan
-  join_type scan_type= tab->type();
+  join_type scan_type = tab->type();
   if (scan_type != JT_ALL &&
       scan_type != JT_INDEX_SCAN &&
       scan_type != JT_REF &&
@@ -928,69 +929,69 @@ bool PQCheck::suite_for_parallel_query() {
 }
 
 void PlanReadyPQCheck::set_select_id() {
-    if (tab && sj_is_materialize_strategy(tab->get_sj_strategy())) {
-        select_id = tab->sjm_query_block_id();
-    } else {
-        PQCheck::set_select_id();
-    }
+  if (tab && sj_is_materialize_strategy(tab->get_sj_strategy())) {
+    select_id = tab->sjm_query_block_id();
+  } else {
+    PQCheck::set_select_id();
+  }
 }
 
 void PlanReadyPQCheck::set_select_type() {
-    if (tab && sj_is_materialize_strategy(tab->get_sj_strategy())) {
-        select_type = enum_explain_type::EXPLAIN_MATERIALIZED;
-    } else {
-        PQCheck::set_select_type();
-    }
+  if (tab && sj_is_materialize_strategy(tab->get_sj_strategy())) {
+    select_type = enum_explain_type::EXPLAIN_MATERIALIZED;
+  } else {
+    PQCheck::set_select_type();
+  }
 }
 
 bool PlanReadyPQCheck::suite_for_parallel_query() {
-    for (uint t = 0; t < join->tables; t++) {
-        tab = join->qep_tab + t;
-        if (!tab->position()) {
-            continue;
-        }
-
-        if (!PQCheck::suite_for_parallel_query()) {
-            return false;
-        }
+  for (uint t = 0; t < join->tables; t++) {
+    tab = join->qep_tab + t;
+    if (!tab->position()) {
+      continue;
     }
+
+    if (!PQCheck::suite_for_parallel_query()) {
+      return false;
+    }
+  }
     
-    return true;
+  return true;
 }
 
 bool check_select_id_and_type(SELECT_LEX *select_lex) {
-    JOIN *join = select_lex->join;
-    std::unique_ptr<PQCheck> check;
-    bool ret = false;
+  JOIN *join = select_lex->join;
+  std::unique_ptr<PQCheck> check;
+  bool ret = false;
 
-    if (join == nullptr) {
-        check.reset(new PQCheck(select_lex));
-        goto END;
+  if (join == nullptr) {
+    check.reset(new PQCheck(select_lex));
+    goto END;
+  }
+
+  switch (join->get_plan_state()) {
+    case JOIN::NO_PLAN:
+    case JOIN::ZERO_RESULT:
+    case JOIN::NO_TABLES: {
+      check.reset(new PQCheck(select_lex));
+      break;
     }
 
-    switch (join->get_plan_state()) {
-        case JOIN::NO_PLAN:
-        case JOIN::ZERO_RESULT:
-        case JOIN::NO_TABLES: {
-            check.reset(new PQCheck(select_lex));
-            break;
-        }
-
-        case JOIN::PLAN_READY: {
-            check.reset(new PlanReadyPQCheck(select_lex));
-            break;
-        }
-
-        default:
-            DBUG_ASSERT(0);
+    case JOIN::PLAN_READY: {
+      check.reset(new PlanReadyPQCheck(select_lex));
+      break;
     }
+
+    default:
+      DBUG_ASSERT(0);
+  }
 
 END:
-    if (check != nullptr) {
-        ret = check->suite_for_parallel_query();
-    }
+  if (check != nullptr) {
+    ret = check->suite_for_parallel_query();
+  }
 
-    return ret;
+  return ret;
 }
 
 bool check_pq_conditions(THD *thd) {
