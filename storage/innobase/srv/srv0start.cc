@@ -122,6 +122,7 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "usr0sess.h"
 #include "ut0crc32.h"
 #include "ut0new.h"
+#include "undo_spaces_snapshot.h"
 
 /** fil_space_t::flags for hard-coded tablespaces */
 extern uint32_t predefined_flags;
@@ -1482,6 +1483,8 @@ void undo_spaces_init() {
 
   undo::spaces = UT_NEW(undo::Tablespaces(), mem_key_undo_spaces);
 
+  undo::undo_spaces_snapshot = UT_NEW_NOKEY(undo::Undo_spaces_snapshot());
+
   trx_sys_undo_spaces_init();
 
   undo::init_space_id_bank();
@@ -1500,6 +1503,11 @@ void undo_spaces_deinit() {
 
     UT_DELETE(undo::spaces);
     undo::spaces = nullptr;
+  }
+
+  if (undo::undo_spaces_snapshot != nullptr) {
+    UT_DELETE(undo::undo_spaces_snapshot);
+    undo::undo_spaces_snapshot = nullptr;
   }
 
   trx_sys_undo_spaces_deinit();

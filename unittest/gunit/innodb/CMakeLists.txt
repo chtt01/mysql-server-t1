@@ -37,6 +37,7 @@ SET(TESTS
   ut0lock_free_hash
   ut0mem
   ut0new
+  undo_spaces_snapshot
 )
 
 SET(ALL_INNODB_TESTS)

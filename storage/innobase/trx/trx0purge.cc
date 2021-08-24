@@ -61,6 +61,7 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "trx0roll.h"
 #include "trx0rseg.h"
 #include "trx0trx.h"
+#include "undo_spaces_snapshot.h"
 
 /** Maximum allowable purge history length.  <=0 means 'infinite'. */
 ulong srv_max_purge_lag = 0;
@@ -81,6 +82,9 @@ const TrxUndoRsegs TrxUndoRsegsIterator::NullElement(UINT64_UNDEFINED);
 /** A sentinel undo record used as a return value when we have a whole
 undo log which can be skipped by purge */
 static trx_undo_rec_t trx_purge_ignore_rec;
+
+unsigned int innodb_undo_spaces_snapshot_tickets = 0;
+extern mysql_mutex_t LOCK_global_system_variables;
 
 /** Constructor */
 TrxUndoRsegsIterator::TrxUndoRsegsIterator(trx_purge_t *purge_sys)
@@ -584,6 +588,9 @@ ib_mutex_t ddl_mutex;
 
 /** A global object that contains a vector of undo::Tablespace structs. */
 Tablespaces *spaces;
+
+/** An global auxiliary object to reduce contention on the undo::spaces::m_latch. */
+Undo_spaces_snapshot *undo_spaces_snapshot;
 
 /** List of currently used undo space IDs for each undo space number
 along with a boolean showing whether the undo space number is in use. */
@@ -1270,10 +1277,34 @@ static bool trx_purge_truncate_marked_undo_low(space_id_t space_num,
                       << "ib_undo_trunc_before_ddl_log_start";
                   DBUG_SUICIDE(););
 
+  std::vector<undo::Tablespace *> unmarked_spaces;
+  for (auto undo_space : undo::spaces->m_spaces) {
+    if (undo_space != marked_space) {
+      unmarked_spaces.push_back(undo_space);
+    }
+  }
+  /* System variable innodb_undo_spaces_snapshot_tickets may be concurrently
+  updated by other thread. Ensure atomic read with LOCK_global_system_variables.*/
+  mysql_mutex_lock(&LOCK_global_system_variables);
+  auto updated_innodb_undo_spaces_snapshot_tickets =
+      innodb_undo_spaces_snapshot_tickets;
+  mysql_mutex_unlock(&LOCK_global_system_variables);
+  undo::undo_spaces_snapshot->reset(updated_innodb_undo_spaces_snapshot_tickets, unmarked_spaces);
+  DBUG_EXECUTE_IF("until_undo_spaces_snapshot_change", {
+    ib::info() << "until_undo_spaces_snapshot_change";
+    while (undo::undo_spaces_snapshot->get_unused_tickets_number() ==
+           undo::undo_spaces_snapshot->get_max_tickets_number()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+    ib::info() << "until_undo_spaces_snapshot_change end";
+  });
+
+
   MONITOR_INC_VALUE(MONITOR_UNDO_TRUNCATE_START_LOGGING_COUNT, 1);
   dberr_t err = undo::start_logging(marked_space);
   if (err != DB_SUCCESS) {
     ib::error(ER_IB_MSG_1171, space_name.c_str());
+    undo::undo_spaces_snapshot->block_until_tickets_returned();
     undo::spaces->x_unlock();
     return (false);
   }
@@ -1296,12 +1327,15 @@ static bool trx_purge_truncate_marked_undo_low(space_id_t space_num,
       });
 #endif /* UNIV_DEBUG */
   if (in_fast_shutdown) {
+    undo::undo_spaces_snapshot->block_until_tickets_returned();
     undo::spaces->x_unlock();
     return (false);
   }
 
   /* Do the truncate.  This will change the space_id of the marked_space. */
   bool success = trx_undo_truncate_tablespace(marked_space);
+
+  undo::undo_spaces_snapshot->block_until_tickets_returned();
 
   undo::spaces->x_unlock();
 
