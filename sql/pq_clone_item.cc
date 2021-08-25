@@ -407,6 +407,18 @@ Item *Item_view_ref::pq_clone(class THD *thd, class SELECT_LEX *select) {
   return item;
 }
 
+/**
+   Item_aggregate_ref wil be created from ref in setup_fields() afterwards, 
+   so clone ref for the item.
+*/
+Item *Item_aggregate_ref::pq_clone(class THD *thd, class SELECT_LEX *select) {
+  Item *item_ref = (*ref)->pq_clone(thd, select);
+  if (item_ref == nullptr) {
+    return nullptr;
+  }
+
+  return item_ref;
+}
 
 Item *Item_ref::pq_clone(class THD *thd, class SELECT_LEX *select) {
   /*

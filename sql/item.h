@@ -85,7 +85,7 @@ typedef Bounds_checked_array<Item *> Ref_item_array;
 void item_init(void); /* Init item functions */
 
 /** this item needs extra bytes for storing count info. */
-extern bool need_extra(Item_sum *);
+extern bool need_extra(Item_sum *ref_item);
 
 /**
   Default condition filtering (selectivity) values used by
@@ -748,18 +748,24 @@ class Item : public Parse_tree_node {
   virtual bool is_expensive_processor(uchar *) { return false; }
 
  public:
-  // During resolve/optimize phase, a item maybe subsituted by a new one, for example
-  // convert_constant_item()/resolve_const_item(), this point to old item for new item
-  Item* origin_item{nullptr};
+  /** 
+    During resolve/optimize phase, a item maybe subsituted by a new one, for example
+    convert_constant_item()/resolve_const_item(), this point to old item for new item.
+  */
+  Item *origin_item{nullptr};
 
-  //During create_tmp_table, const_item can be skipped when hidden_field_count <= 0;
-  //and thus, these skipped items will not create result_field in tmp table. Here, we
-  //should mark it when sending data to MQ.
-  bool skip_create_tmp_table {false};
+  /**
+    During create_tmp_table, const_item can be skipped when hidden_field_count <= 0;
+    and thus, these skipped items will not create result_field in tmp table. Here, we
+    should mark it when sending data to MQ.
+  */
+  bool skip_create_tmp_table{false};
 
-  //During itemize (or new item()), some item are added to THD::m_item_list for ease of
-  //releasing the space allocated at runtime.
-  bool pq_alloc_item {false};
+  /**
+    During itemize (or new item()), some item are added to THD::m_item_list for ease of
+    releasing the space allocated at runtime.
+  */
+  bool pq_alloc_item{false};
 
 protected:
   /**
@@ -920,11 +926,15 @@ protected:
 
   virtual Item *pq_clone(THD *thd, SELECT_LEX *select);
 
-  virtual bool pq_copy_from(THD *thd, SELECT_LEX *select, Item* item);
+  virtual bool pq_copy_from(THD *thd, SELECT_LEX *select, Item *item);
 
   virtual size_t pq_extra_len(bool) { return 0; }
 
-  virtual const uchar* val_extra(uint32 *len) { *len = 0; return nullptr; }
+  virtual const uchar *val_extra(uint32 *len) {
+    DBUG_ASSERT(len != nullptr);
+    *len = 0; 
+    return nullptr; 
+  }
 
    /**
     Parse-time context-independent constructor.
@@ -1005,7 +1015,7 @@ protected:
   void init_make_field(Send_field *tmp_field, enum enum_field_types type);
   virtual void cleanup();
   virtual void make_field(Send_field *field);
-  virtual Field *make_string_field(TABLE *table, MEM_ROOT *root=nullptr) const;
+  virtual Field *make_string_field(TABLE *table, MEM_ROOT *root = nullptr) const;
   virtual bool fix_fields(THD *, Item **);
   /**
     Fix after tables have been moved from one select_lex level to the parent
@@ -2534,7 +2544,7 @@ protected:
   // used in row subselects to get value of elements
   virtual void bring_value() {}
 
-  Field *tmp_table_field_from_field_type(TABLE *table, bool fixed_length, MEM_ROOT *root=nullptr) const;
+  Field *tmp_table_field_from_field_type(TABLE *table, bool fixed_length, MEM_ROOT *root = nullptr) const;
   virtual Item_field *field_for_view_update() { return nullptr; }
   /**
     Informs an item that it is wrapped in a truth test, in case it wants to
@@ -3099,7 +3109,7 @@ class Item_basic_constant : public Item {
   bool basic_const_item() const override { return true; }
   void set_str_value(String *str) { str_value = *str; }
 
-  bool pq_copy_from(THD *thd, SELECT_LEX *select, Item* item) override;
+  bool pq_copy_from(THD *thd, SELECT_LEX *select, Item *item) override;
 
 };
 
@@ -3372,8 +3382,10 @@ class Item_ident : public Item {
     of those is shorter than life-time of Item_field.
   */
   const char *orig_db_name;
- public:  
+
+ public:
   const char *orig_table_name;
+
  protected:
   const char *orig_field_name;
   bool m_alias_of_expr;  ///< if this Item's name is alias of SELECT expression
@@ -3704,7 +3716,7 @@ class Item_field : public Item_ident {
   longlong val_time_temporal() override;
   longlong val_date_temporal() override;
   my_decimal *val_decimal(my_decimal *) override;
-  const uchar *val_extra(uint32 *len);
+  const uchar *val_extra(uint32 *len) override;
   String *val_str(String *) override;
   bool val_json(Json_wrapper *result) override;
   bool send(Protocol *protocol, String *str_arg) override;
@@ -3934,7 +3946,7 @@ class Item_null : public Item_basic_constant {
 
   Item *safe_charset_converter(THD *thd, const CHARSET_INFO *tocs) override;
   bool check_partition_func_processor(uchar *) override { return false; }
-  Item* pq_clone(THD *thd, SELECT_LEX *select) override;
+  Item *pq_clone(THD *thd, SELECT_LEX *select) override;
 };
 
 /**
@@ -4242,8 +4254,8 @@ class Item_int : public Item_num {
                                              bool no_conversions) override;
 
  public:
-  Item *pq_clone(THD *, SELECT_LEX *) override;
-  bool pq_copy_from(THD *, SELECT_LEX *, Item *) override;
+  Item *pq_clone(THD *thd, SELECT_LEX *select) override;
+  bool pq_copy_from(THD *thd, SELECT_LEX *select, Item *item) override;
 
   enum Type type() const override { return INT_ITEM; }
   enum Item_result result_type() const override { return INT_RESULT; }
@@ -4367,7 +4379,7 @@ class Item_uint : public Item_int {
              enum_query_type query_type) const override;
   Item_num *neg() override;
   uint decimal_precision() const override { return max_length; }
-  Item *pq_clone(THD *, SELECT_LEX *) override;
+  Item *pq_clone(THD *thd, SELECT_LEX *select) override;
 };
 
 /* decimal (fixed point) constant */
@@ -4415,7 +4427,7 @@ class Item_decimal : public Item_num {
   bool eq(const Item *, bool binary_cmp) const override;
   void set_decimal_value(const my_decimal *value_par);
   bool check_partition_func_processor(uchar *) override { return false; }
-  Item *pq_clone(THD *, SELECT_LEX *) override;
+  Item *pq_clone(THD *thd, SELECT_LEX *select) override;
 };
 
 class Item_float : public Item_num {
@@ -4499,7 +4511,7 @@ class Item_float : public Item_num {
   void print(const THD *thd, String *str,
              enum_query_type query_type) const override;
   bool eq(const Item *, bool binary_cmp) const override;
-  Item* pq_clone(THD*, SELECT_LEX *) override;
+  Item *pq_clone(THD *thd, SELECT_LEX *select) override;
 };
 
 class Item_func_pi : public Item_float {
@@ -5037,8 +5049,7 @@ class Item_ref : public Item_ident {
         result_field(item->result_field),
         ref(item->ref),
         copy_type(WITH_REF_ONLY),
-        chop_ref(!ref)
-        {}
+        chop_ref(!ref) {}
 
   enum Type type() const override { return REF_ITEM; }
   bool eq(const Item *item, bool binary_cmp) const override {
@@ -6047,6 +6058,7 @@ class Item_trigger_field final : public Item_field,
 class Item_cache : public Item_basic_constant {
  public:
   Item *example;
+
  protected:
   table_map used_table_map;
   /**
@@ -6189,8 +6201,8 @@ class Item_cache : public Item_basic_constant {
     return Field::result_merge_type(example->data_type());
   }
 
-  Item *get_example() {return example;}
-  bool pq_copy_from(THD *thd, SELECT_LEX* select, Item* item ) override;
+  Item *get_example() { return example; }
+  bool pq_copy_from(THD *thd, SELECT_LEX *select, Item *item ) override;
 };
 
 class Item_cache_int final : public Item_cache {
@@ -6468,7 +6480,7 @@ class Item_aggregate_type : public Item {
 
   Item_result result_type() const override;
   bool join_types(THD *, Item *);
-  Field *make_field_by_type(TABLE *table, bool strict, MEM_ROOT *root=nullptr);
+  Field *make_field_by_type(TABLE *table, bool strict, MEM_ROOT *root = nullptr);
   static uint32 display_length(Item *item);
   static enum_field_types real_data_type(Item *);
   Field::geometry_type get_geometry_type() const override {
@@ -6593,5 +6605,43 @@ void convert_and_print(const String *from_str, String *to_str,
                        const CHARSET_INFO *to_cs);
 
 std::string ItemToString(const Item *item);
+
+/*
+ need a special class to adjust printing : references to aggregate functions
+ must not be printed as refs because the aggregate functions that are added to
+ the front of select list are not printed as well.
+*/
+class Item_aggregate_ref : public Item_ref {
+ public:
+  Item_aggregate_ref(Name_resolution_context *context_arg, Item **item,
+                     const char *table_name_arg, const char *field_name_arg,
+                     SELECT_LEX *depended_from_arg)
+      : Item_ref(context_arg, item, table_name_arg, field_name_arg) {
+    depended_from = depended_from_arg;
+  }
+
+  void print(const THD *thd, String *str,
+             enum_query_type query_type) const override {
+    if (ref != nullptr && (*ref) != nullptr) {
+      (*ref)->print(thd, str, query_type);
+    } else {
+      Item_ident::print(thd, str, query_type);
+    }     
+  }
+
+  Ref_Type ref_type() const override { return AGGREGATE_REF; }
+
+  /**
+    Walker processor used by SELECT_LEX::transform_grouped_to_derived to replace
+    an aggregate's reference to one in the new derived table's (hidden) select
+    list.
+
+    @param  arg  An info object of type Item::Aggregate_ref_update
+    @returns false
+  */
+  bool update_aggr_refs(uchar *arg) override;
+
+  Item *pq_clone(class THD *thd, class SELECT_LEX *select) override;
+};
 
 #endif /* ITEM_INCLUDED */

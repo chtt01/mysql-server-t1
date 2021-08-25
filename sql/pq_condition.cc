@@ -523,6 +523,13 @@ bool pq_create_result_fields(THD *thd, Temp_table_param *param,
         continue;
     }
     // note that: the above item will not be pushed into worker
+    
+    if (item->has_aggregation() && item->type() != Item::SUM_FUNC_ITEM) {
+      if (item->type() == Item::SUBSELECT_ITEM ||
+          (item->used_tables() & ~OUTER_REF_TABLE_BIT)) {
+        continue;
+      }
+    }
 
     result_field = item->get_result_field();
     if (result_field) {
