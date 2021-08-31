@@ -760,13 +760,13 @@ COPY_FUNC_ITEM(Item_func_not, ARG0)
 
 PQ_CLONE_DEF(Item_func_truth) {
     PQ_CLONE_ARGS
-    new_item = new Item_func_truth(POS(), item_list[0], truth_test);
+    new_item = new (thd->pq_mem_root) Item_func_truth(POS(), item_list[0], truth_test);
   }
 PQ_CLONE_RETURN
 
 PQ_CLONE_DEF(Item_extract) {
     PQ_CLONE_ARGS
-    new_item = new Item_extract(POS(), this->int_type, item_list[0]);
+    new_item = new (thd->pq_mem_root) Item_extract(POS(), this->int_type, item_list[0]);
   }
 PQ_CLONE_RETURN
 
@@ -908,7 +908,7 @@ PQ_CLONE_DEF(Item_func_in) {
       if (arg == nullptr) return nullptr;
       pt_item.value.push_back(arg);
     }
-    new_item = new Item_func_in(POS(), &pt_item, negated);
+    new_item = new (thd->pq_mem_root) Item_func_in(POS(), &pt_item, negated);
   }
 PQ_CLONE_RETURN
 
@@ -1111,7 +1111,7 @@ PQ_CLONE_DEF(Item_func_json_quote) {
     PT_item_list pt_item_list;
     pt_item_list.value = item_list;
 
-    new_item = new Item_func_json_quote(POS(), &pt_item_list);
+    new_item = new (thd->pq_mem_root) Item_func_json_quote(POS(), &pt_item_list);
   }
 PQ_CLONE_RETURN
 
