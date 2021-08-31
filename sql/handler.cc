@@ -2928,9 +2928,9 @@ int handler::ha_pq_init(uint &dop, uint keyno) {
   int result;
   DBUG_ENTER("handler::ha_pq_init");
   DBUG_ASSERT(table_share->tmp_table != NO_TMP_TABLE || m_lock_type != F_UNLCK);
-  DBUG_ASSERT(inited == NONE || inited == INDEX || (inited == PQ));
+  DBUG_ASSERT(inited == NONE || inited == INDEX || (inited == PQ_LEADER));
   THD *cur_thd= table->in_use;
-  inited = (result = pq_leader_scan_init(keyno, cur_thd->pq_ctx, dop)) ? NONE : PQ;
+  inited = (result = pq_leader_scan_init(keyno, cur_thd->pq_ctx, dop)) ? NONE : PQ_LEADER;
   end_range = NULL;
   pq_ref = false;
   pq_reverse_scan = false;

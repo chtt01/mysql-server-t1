@@ -4522,7 +4522,7 @@ bool JOIN::make_leader_tables_info() {
       (down_cast<Item_field *>(tmp_item)->result_field)->field_name = saved_result_field[i]->field_name;
       if (tmp_item->const_item()) {
         uint32 length = (down_cast<Item_field *>(tmp_item)->get_orig_field())->data_length();
-        memcpy((down_cast<Item_field *>(tmp_item)->result_field)->ptr,
+        memmove((down_cast<Item_field *>(tmp_item)->result_field)->ptr,
                (down_cast<Item_field *>(tmp_item)->get_orig_field())->ptr,
                length);
       }
