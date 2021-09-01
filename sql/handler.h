@@ -4076,7 +4076,7 @@ class handler {
   /** Length of ref (1-8 or the clustered key length) */
   uint ref_length;
   FT_INFO *ft_handler;
-  enum { NONE = 0, INDEX, RND, SAMPLING, PQ } inited;
+  enum { NONE = 0, INDEX, RND, SAMPLING, PQ_LEADER, PQ_WORKER } inited;
   bool implicit_emptied; /* Can be !=0 only if HEAP */
   const Item *pushed_cond;
 
@@ -4343,8 +4343,11 @@ class handler {
       case RND:
         return ha_rnd_end();
         break;
-      case PQ:
+      case PQ_LEADER:
         return ha_pq_end();
+        break;
+      case PQ_WORKER:
+        return pq_worker_scan_end(nullptr);
         break;
       default:
         return 0;

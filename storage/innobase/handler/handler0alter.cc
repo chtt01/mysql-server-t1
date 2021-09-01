@@ -1174,6 +1174,7 @@ int ha_innobase::pq_worker_scan_init(uint keyno, void *scan_ctx) {
     trx_clone_read_view(trx, pq_reader->snapshot);
   }
   build_template(false);
+  inited = handler::PQ_WORKER;
 
   return(0);
 }
@@ -1621,8 +1622,12 @@ int ha_innobase::pq_leader_scan_end(void *pq_ctx) {
 }
 
 int ha_innobase::pq_worker_scan_end(void *pq_ctx) {
-  UT_DELETE(m_prebuilt->trx->read_view);
-  m_prebuilt->trx->read_view = nullptr;
+  if (m_prebuilt->trx->read_view != nullptr && m_prebuilt->trx->read_view->skip_view_list == true) {
+    UT_DELETE(m_prebuilt->trx->read_view);
+    m_prebuilt->trx->read_view = nullptr;
+  }
+  
+  inited = handler::NONE;
   return 0;
 }
 
