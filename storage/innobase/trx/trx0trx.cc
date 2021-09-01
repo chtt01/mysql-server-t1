@@ -1088,27 +1088,31 @@ static trx_rseg_t *get_next_redo_rseg_from_undo_spaces() {
     current++;
 
     if (use_no_latch) {
-      undo_space = undo::undo_spaces_snapshot->at(spaces_slot);
-      ut_a(undo_space!=nullptr);
-    } else {
+      if (!undo::undo_spaces_snapshot->is_active_no_latch_for_undo_space(spaces_slot)) {
+        continue;
+      }
+      ut_ad(target_rollback_segments <= undo::undo_spaces_snapshot->get_rsegs_size_for_undo_space(spaces_slot));
+      rseg = undo::undo_spaces_snapshot->get_active_for_undo_space(spaces_slot, rseg_slot);
+    }
+    else {
       undo_space = undo::spaces->at(spaces_slot);
+      
+      /* Avoid any rseg that resides in a tablespace that has been made
+      inactive either explicitly or by being marked for truncate. We do
+      not want to wait here on an x_lock for an rseg in an undo tablespace
+      that is being truncated.  So check this first without the latch.
+      It could be set immediately after this, but that is a very short gap
+      and the get_active() call below will use an rseg->s_lock. */
+      if (!undo_space->is_active_no_latch()) {
+        continue;
+      }
+
+      /* This is done here because we know the rsegs() pointer is good. */
+      ut_ad(target_rollback_segments <= undo_space->rsegs()->size());
+
+      /* Check again with a shared lock. */
+      rseg = undo_space->get_active(rseg_slot);
     }
-
-    /* Avoid any rseg that resides in a tablespace that has been made
-    inactive either explicitly or by being marked for truncate. We do
-    not want to wait here on an x_lock for an rseg in an undo tablespace
-    that is being truncated.  So check this first without the latch.
-    It could be set immediately after this, but that is a very short gap
-    and the get_active() call below will use an rseg->s_lock. */
-    if (!undo_space->is_active_no_latch()) {
-      continue;
-    }
-
-    /* This is done here because we know the rsegs() pointer is good. */
-    ut_ad(target_rollback_segments <= undo_space->rsegs()->size());
-
-    /* Check again with a shared lock. */
-    rseg = undo_space->get_active(rseg_slot);
     if (rseg == nullptr) {
       continue;
     }

@@ -1,3 +1,30 @@
+/*****************************************************************************
+
+Copyright (c) 1996, 2020, Oracle and/or its affiliates. All Rights Reserved.
+Copyright (c) 2021, Huawei Technologies Co., Ltd.
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License, version 2.0, as published by the
+Free Software Foundation.
+
+This program is also distributed with certain software (including but not
+limited to OpenSSL) that is licensed under separate terms, as designated in a
+particular file or component or in included license documentation. The authors
+of MySQL hereby grant you an additional permission to link the program and
+your derivative works with the separately licensed software that they have
+included with MySQL.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License, version 2.0,
+for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+
+*****************************************************************************/
+
 #include "undo_spaces_snapshot.h"
 #include <chrono>
 #include <thread>
@@ -5,10 +32,10 @@
 
 namespace undo {
 Undo_spaces_snapshot::Undo_spaces_snapshot()
-    : m_max_tickets(0),
+    : m_tablespaces(),
+      m_max_tickets(0),
       m_unused_tickets(0),
       m_used_tickets(0),
-      m_tablespaces(),
       m_is_depriving(false) {}
 
 Undo_spaces_snapshot::~Undo_spaces_snapshot() {}
@@ -23,18 +50,11 @@ void Undo_spaces_snapshot::reset(const unsigned int max_tickets,
   m_unused_tickets.store(m_max_tickets, std::memory_order_release);
 }
 
-std::size_t Undo_spaces_snapshot::get_target_undo_tablespaces_size() {
+std::size_t Undo_spaces_snapshot::get_target_undo_tablespaces_size() const {
   return m_tablespaces.size();
 }
 
-undo::Tablespace *Undo_spaces_snapshot::at(size_t pos) {
-  if (pos >= m_tablespaces.size()) {
-    return nullptr;
-  }
-  return m_tablespaces[pos];
-}
-
-unsigned int Undo_spaces_snapshot::get_unused_tickets_number() {
+unsigned int Undo_spaces_snapshot::get_unused_tickets_number() const {
   return m_unused_tickets.load(std::memory_order_acquire);
 }
 
@@ -72,8 +92,40 @@ void Undo_spaces_snapshot::block_until_tickets_returned() {
   }
 }
 
-unsigned int Undo_spaces_snapshot::get_max_tickets_number() {
+unsigned int Undo_spaces_snapshot::get_max_tickets_number() const {
   return m_max_tickets;
+}
+
+undo::Tablespace *Undo_spaces_snapshot::at(size_t pos) const {
+  if (pos >= m_tablespaces.size()) {
+    return nullptr;
+  }
+  return m_tablespaces[pos];
+}
+
+bool Undo_spaces_snapshot::is_active_no_latch_for_undo_space(size_t pos) const {
+  auto undo_space = this->at(pos);
+  if (undo_space == nullptr) {
+    return false;
+  }
+  return undo_space->is_active_no_latch();
+}
+
+ulint Undo_spaces_snapshot::get_rsegs_size_for_undo_space(size_t pos) const {
+  auto undo_space = this->at(pos);
+  if (undo_space == nullptr) {
+    return 0;
+  }
+  return undo_space->rsegs()->size();
+}
+
+trx_rseg_t *Undo_spaces_snapshot::get_active_for_undo_space(
+    size_t pos, ulint rseg_slot) const {
+  auto undo_space = this->at(pos);
+  if (undo_space == nullptr) {
+    return nullptr;
+  }
+  return undo_space->get_active(rseg_slot);
 }
 
 } /* namespace undo */

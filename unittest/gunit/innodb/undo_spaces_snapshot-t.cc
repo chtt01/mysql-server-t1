@@ -9,6 +9,8 @@
 #include "my_config.h"
 #include "undo_spaces_snapshot.h"
 
+namespace undo {
+
 class UndoSpacesSnapshotTest : public ::testing::Test {
  protected:
   void SetUp() override {
@@ -111,4 +113,6 @@ TEST_F(UndoSpacesSnapshotTest, UseSomeTickets) {
   m_undo_spaces_snapshot->block_until_tickets_returned();
   ASSERT_EQ(success_requested.load(), ticket_number / 2);
   ASSERT_EQ(m_undo_spaces_snapshot->get_unused_tickets_number(), 0);
+}
+
 }
