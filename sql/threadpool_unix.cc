@@ -1028,13 +1028,12 @@ static void thread_group_close(thread_group_t *thread_group)
   DBUG_ENTER("thread_group_close");
 
   mysql_mutex_lock(&thread_group->mutex);
+  thread_group->shutdown = true;
   if (thread_group->thread_count == 0) 
   {
     mysql_mutex_unlock(&thread_group->mutex);
     DBUG_VOID_RETURN;
   }
-
-  thread_group->shutdown= true; 
 
   if (pipe(thread_group->shutdown_pipe))
   {
