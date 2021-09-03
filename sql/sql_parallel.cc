@@ -772,7 +772,7 @@ void *pq_worker_exec(void *arg) {
   join->unit->ExecuteIteratorQuery(thd);
 
   if (thd->lex->is_explain_analyze && mngr->m_id == 0) {
-    mngr->m_gather->iterator.reset(new PQExplainIterator());
+    mngr->m_gather->iterator.reset(new (leader_thd->pq_mem_root) PQExplainIterator(leader_thd));
     mngr->m_gather->iterator->copy(join->unit->root_iterator());
   }
 
