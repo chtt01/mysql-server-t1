@@ -85,10 +85,6 @@ const char* NO_PQ_SUPPORTED_FUNC_NO_ARGS [] = {
   "release_all_locks"
 };
 
-const Item_ref::Ref_Type NO_PQ_SUPPORTED_REF_TYPES[] = {
-  Item_ref::OUTER_REF
-};
-
 /**
  * return true when type is a not_supported_field; return false otherwise.
  */
@@ -154,27 +150,34 @@ bool pq_not_support_aggr_functype(Item_sum::Sumfunctype type) {
 /**
  * check PQ supported ref function
  */
-bool pq_not_support_ref(Item_ref *ref) {
+bool pq_not_support_ref(Item_ref *ref, bool having) {
   Item_ref::Ref_Type type = ref->ref_type();
-  for (auto &ref_type : NO_PQ_SUPPORTED_REF_TYPES) {
-    if (type == ref_type) {
-      return true;
-    }
+  if (type == Item_ref::OUTER_REF) {
+    return true;
+  }
+  /**
+   * Now, when the sql contains a aggregate function after the 'having',
+   * we do not support parallel query. For example: 
+   * select t1.col1 from t1 group by t1.col1 having avg(t1.col1) > 0;
+   * So, we disable the sql;
+   */
+  if (having && type == Item_ref::AGGREGATE_REF) {
+    return true;
   }
 
   return false;
 }
 
-typedef bool (*PQ_CHECK_ITEM_FUN)(Item *item);
+typedef bool (*PQ_CHECK_ITEM_FUN)(Item *item, bool having);
 
 struct PQ_CHECK_ITEM_TYPE {
   Item::Type item_type;
   PQ_CHECK_ITEM_FUN fun_ptr;
 };
 
-bool check_pq_support_fieldtype(Item *item);
+bool check_pq_support_fieldtype(Item *item, bool having);
 
-bool check_pq_support_fieldtype_of_field_item(Item *item) {
+bool check_pq_support_fieldtype_of_field_item(Item *item, bool MY_ATTRIBUTE((unused))) {
   Field *field = static_cast<Item_field *>(item)->field;
   DBUG_ASSERT(field);
   // not supported for generated column
@@ -186,7 +189,7 @@ bool check_pq_support_fieldtype_of_field_item(Item *item) {
   return true;
 }
 
-bool check_pq_support_fieldtype_of_func_item(Item *item) {
+bool check_pq_support_fieldtype_of_func_item(Item *item, bool having) {
   Item_func *func = static_cast<Item_func *>(item);
   DBUG_ASSERT(func);
 
@@ -198,7 +201,7 @@ bool check_pq_support_fieldtype_of_func_item(Item *item) {
   // the case of Item_func_make_set
   if (!strcmp(func->func_name(), "make_set")) {
     Item *arg_item = down_cast<Item_func_make_set *>(func)->item;
-    if (arg_item && !check_pq_support_fieldtype(arg_item)) {
+    if (arg_item && !check_pq_support_fieldtype(arg_item, having)) {
       return false;
     }
   }
@@ -208,7 +211,7 @@ bool check_pq_support_fieldtype_of_func_item(Item *item) {
     //c: args contain unsupported fields
     Item *arg_item = func->arguments()[i];
     if (arg_item == nullptr ||
-        !check_pq_support_fieldtype(arg_item)) {            //c
+        !check_pq_support_fieldtype(arg_item, having)) {            //c
       return false;
     }
   }
@@ -222,7 +225,7 @@ bool check_pq_support_fieldtype_of_func_item(Item *item) {
     Item *const_item = item_equal->get_const();
     if (const_item &&
         (const_item->type() == Item::SUM_FUNC_ITEM ||         //c1
-          !check_pq_support_fieldtype(const_item))) {          //c2
+          !check_pq_support_fieldtype(const_item, having))) {          //c2
       return false;
     }
 
@@ -231,7 +234,7 @@ bool check_pq_support_fieldtype_of_func_item(Item *item) {
     List<Item_field> fields = item_equal->get_fields();
     List_iterator_fast<Item_field> it(fields);
     for (size_t i = 0; (field_item = it++); i++) {
-      if (!check_pq_support_fieldtype(field_item)) {
+      if (!check_pq_support_fieldtype(field_item, having)) {
         return false;
       }
     }
@@ -240,7 +243,7 @@ bool check_pq_support_fieldtype_of_func_item(Item *item) {
   return true;
 }
 
-bool check_pq_support_fieldtype_of_cond_item(Item *item) {
+bool check_pq_support_fieldtype_of_cond_item(Item *item, bool having) {
   Item_cond *cond = static_cast<Item_cond *>(item);
   DBUG_ASSERT(cond);
 
@@ -252,7 +255,7 @@ bool check_pq_support_fieldtype_of_cond_item(Item *item) {
   List_iterator_fast<Item> it(*cond->argument_list());
   for (size_t i = 0; (arg_item = it++); i++) {
     if (arg_item->type() == Item::SUM_FUNC_ITEM ||         //c1
-        !check_pq_support_fieldtype(arg_item)) {             //c2
+        !check_pq_support_fieldtype(arg_item, having)) {             //c2
       return false;
     }
   }
@@ -260,14 +263,23 @@ bool check_pq_support_fieldtype_of_cond_item(Item *item) {
   return true;
 }
 
-bool check_pq_support_fieldtype_of_sum_func_item(Item *item) {
+bool check_pq_support_fieldtype_of_sum_func_item(Item *item, bool having) {
+  /**
+   * Now, when the sql contains a reference to the aggregate function after the 'having',
+   * we do not support parallel query. For example: 
+   * select t1.col1, avg(t1.col1) as avg from t1 group by t1.col1 having avg > 0;
+   * So, we disable the sql.
+   */
+  if (having) {
+    return false;
+  }
   Item_sum *sum = static_cast<Item_sum *>(item);
   if (!sum || pq_not_support_aggr_functype(sum->sum_func())) {
     return false;
   }
 
   for (uint i = 0; i < sum->get_arg_count(); i++) {
-    if (!check_pq_support_fieldtype(sum->get_arg(i))) {
+    if (!check_pq_support_fieldtype(sum->get_arg(i), having)) {
       return false;
     }
   }
@@ -275,20 +287,20 @@ bool check_pq_support_fieldtype_of_sum_func_item(Item *item) {
   return true;
 }
 
-bool check_pq_support_fieldtype_of_ref_item(Item *item) {  
+bool check_pq_support_fieldtype_of_ref_item(Item *item, bool having) {  
   Item_ref *item_ref = down_cast<Item_ref *>(item);
-  if (item_ref == nullptr || pq_not_support_ref(item_ref)) {
+  if (item_ref == nullptr || pq_not_support_ref(item_ref, having)) {
     return false;
   }
 
-  if (!check_pq_support_fieldtype(item_ref->ref[0])) {
+  if (!check_pq_support_fieldtype(item_ref->ref[0], having)) {
     return false;
   }
 
   return true;
 }
 
-bool check_pq_support_fieldtype_of_cache_item(Item *item) {
+bool check_pq_support_fieldtype_of_cache_item(Item *item, bool having) {
   Item_cache *item_cache = dynamic_cast<Item_cache*>(item);
   if (item_cache == nullptr) {
     return false;
@@ -296,20 +308,20 @@ bool check_pq_support_fieldtype_of_cache_item(Item *item) {
 
   Item *example_item = item_cache->get_example();
   if (example_item == nullptr || example_item->type() == Item::SUM_FUNC_ITEM ||         //c1
-      !check_pq_support_fieldtype(example_item)) {            //c2
+      !check_pq_support_fieldtype(example_item, having)) {            //c2
     return false;
   }
 
   return true;
 }
 
-bool check_pq_support_fieldtype_of_row_item(Item *item) {
+bool check_pq_support_fieldtype_of_row_item(Item *item, bool having) {
   // check each item in Item_row
   Item_row *row_item = down_cast<Item_row *>(item);
   for (uint i = 0; i < row_item->cols(); i++) {
     Item *n_item = row_item->element_index(i);
     if (n_item == nullptr || n_item->type() == Item::SUM_FUNC_ITEM ||         //c1
-        !check_pq_support_fieldtype(n_item)) {             //c2
+        !check_pq_support_fieldtype(n_item, having)) {             //c2
       return false;
     }
   }
@@ -358,13 +370,13 @@ PQ_CHECK_ITEM_TYPE g_check_item_type[] = {
  *     true : supported
  *     false : not supported
  */
-bool check_pq_support_fieldtype(Item *item) {
+bool check_pq_support_fieldtype(Item *item, bool having) {
   if (item == nullptr || pq_not_support_datatype(item->data_type())) {
     return false;
   }
 
   if (g_check_item_type[item->type()].fun_ptr != nullptr) {
-    return g_check_item_type[item->type()].fun_ptr(item);
+    return g_check_item_type[item->type()].fun_ptr(item, having);
   }
 
   return true;
@@ -387,7 +399,7 @@ bool check_pq_sort_aggregation(const ORDER_with_src &order_list) {
 
   for (tmp = order_list.order; tmp; tmp = tmp->next) {
     order_item = *(tmp->item);
-    if (!check_pq_support_fieldtype(order_item)) {
+    if (!check_pq_support_fieldtype(order_item, false)) {
       return true;
     }
   }
@@ -653,7 +665,7 @@ bool check_pq_select_fields(JOIN *join) {
   List_iterator_fast<Item> it(join->all_fields);
   Item *item = nullptr;
   while ((item = it++)) {
-    if (!check_pq_support_fieldtype(item)) {
+    if (!check_pq_support_fieldtype(item, false)) {
       return false;
 	  }
   }
@@ -661,7 +673,7 @@ bool check_pq_select_fields(JOIN *join) {
   Item *n_where_cond = join->select_lex->where_cond();
   Item *n_having_cond = join->select_lex->having_cond();
 
-  if (n_where_cond && !check_pq_support_fieldtype(n_where_cond)) {
+  if (n_where_cond && !check_pq_support_fieldtype(n_where_cond, false)) {
     return false;
   }
 
@@ -669,7 +681,7 @@ bool check_pq_select_fields(JOIN *join) {
    * For Having Aggr. function, the having_item will be pushed
    * into all_fields in prepare phase. Currently, we have not support this operation.
    */
-  if (n_having_cond && !check_pq_support_fieldtype(n_having_cond)) {
+  if (n_having_cond && !check_pq_support_fieldtype(n_having_cond, true)) {
     return false;
   }
   
