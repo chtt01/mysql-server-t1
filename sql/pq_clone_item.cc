@@ -179,11 +179,10 @@ PQ_COPY_FROM_DEF(Item_cache, Item_basic_constant) {
     }
     if (orig_item != nullptr && orig_item->example != nullptr) {
       Item *example_arg = orig_item->example->pq_clone(thd, select);
+      if (example_arg == nullptr) return true;
       if (!example_arg->fixed) {
         example_arg->fix_fields(thd, &example_arg);
       }
-
-      if (example_arg == nullptr) return true;
       setup(example_arg);
     }
   }
@@ -200,9 +199,12 @@ PQ_CLONE_DEF(Item_cache_decimal) {
 PQ_CLONE_RETURN
 
 PQ_CLONE_DEF(Item_cache_int) {
-    new_item = new Item_cache_int();
+    new_item = new (thd->pq_mem_root) Item_cache_int();
     if (origin_item) {
       new_item->example = origin_item->pq_clone(thd, select);
+      if (new_item->example == nullptr) {
+        return nullptr;
+      }
     }
   }
 PQ_CLONE_RETURN
@@ -246,7 +248,7 @@ PQ_CLONE_RETURN
 /* Item_num start */
 PQ_CLONE_DEF(Item_int_with_ref) {
     Item *pq_ref = ref->pq_clone(thd, select);
-    if (!pq_ref) return nullptr;
+    if (pq_ref == nullptr) return nullptr;
     new_item = new (thd->pq_mem_root)
         Item_int_with_ref(pq_ref->data_type(), value, pq_ref, unsigned_flag);
   }
@@ -257,7 +259,7 @@ PQ_CLONE_DEF(Item_datetime_with_ref) {
       return origin_item->pq_clone(thd, select);
     }
     Item *pq_ref = ref->pq_clone(thd, select);
-    if (!pq_ref) return nullptr;
+    if (pq_ref == nullptr) return nullptr;
 
     new_item = new (thd->pq_mem_root)
         Item_datetime_with_ref(pq_ref->data_type(), decimals, value, pq_ref);
@@ -269,7 +271,7 @@ PQ_CLONE_DEF(Item_time_with_ref) {
       return origin_item->pq_clone(thd, select);
     }
     Item *pq_ref = ref->pq_clone(thd, select);
-    if (!pq_ref) return nullptr;
+    if (pq_ref == nullptr) return nullptr;
 
     new_item = new (thd->pq_mem_root) Item_time_with_ref(decimals, value, pq_ref);
   }
@@ -337,7 +339,7 @@ PQ_CLONE_DEF(Item_default_value) {
     Item *new_arg = nullptr;
     if (arg) {
       new_arg = arg->pq_clone(thd, select);
-      if (nullptr == new_arg) return nullptr;
+      if (new_arg == nullptr) return nullptr;
     }
     new_item = new (thd->pq_mem_root) Item_default_value(POS(), new_arg);
   }
@@ -440,8 +442,8 @@ Item *Item_ref::pq_clone(class THD *thd, class SELECT_LEX *select) {
     DBUG_ASSERT(copy_type == WITH_REF_ONLY);
     new_item = new (thd->pq_mem_root) Item_ref(thd, this);
   }
-  if (new_item == NULL || new_item->pq_copy_from(thd, select, this))
-    return NULL;
+  if (new_item == nullptr || new_item->pq_copy_from(thd, select, this))
+    return nullptr;
 
   new_item->context = &select->context;
   return new_item;
@@ -721,6 +723,9 @@ PQ_COPY_FROM_DEF(Item_equal, Item_bool_func) {
     }
     if (orig_item != nullptr && orig_item->const_item != nullptr) {
       const_item = orig_item->const_item->pq_clone(thd, select);
+      if (const_item == nullptr) {
+        return true;
+      }
     }
   }
 PQ_COPY_FROM_RETURN
@@ -837,6 +842,9 @@ PQ_CLONE_DEF(Item_func_last_insert_id) {
     Item *item_arg = nullptr;
     if (arg_count == 1) {
       item_arg = args[0]->pq_clone(thd, select);
+      if (item_arg ==nullptr) {
+        return nullptr;
+      }
     }
 
     if (arg_count == 0) {
@@ -940,7 +948,7 @@ PQ_CLONE_DEF(Item_func_atan) {
     DBUG_ASSERT(arg_count < 3);
     for (uint i = 0; i < arg_count; i++) {
       item_args[i] = args[i]->pq_clone(thd, select);
-      if (nullptr == item_args[i]) return nullptr;
+      if (item_args[i] == nullptr) return nullptr;
     }
 
     if (arg_count == 1)
@@ -956,7 +964,7 @@ PQ_CLONE_DEF(Item_func_log) {
     DBUG_ASSERT(arg_count < 3);
     for (uint i = 0; i < arg_count; i++) {
       item_args[i] = args[i]->pq_clone(thd, select);
-      if (nullptr == item_args[i]) return nullptr;
+      if (item_args[i] == nullptr) return nullptr;
     }
 
     if (arg_count == 1)
@@ -1478,7 +1486,7 @@ PQ_CLONE_DEF(Item_typecast_datetime) {
       return origin_item->pq_clone(thd, select);
     }
     Item *arg_item = args[0]->pq_clone(thd, select);
-    if (!arg_item) return nullptr;
+    if (arg_item == nullptr) return nullptr;
 
     new_item = new (thd->pq_mem_root) Item_typecast_datetime(POS(), arg_item);
   }
@@ -1600,7 +1608,7 @@ PQ_REBUILD_SUM_RETURN
 
 PQ_CLONE_DEF(Item_sum_and) {
     Item *arg = args[0]->pq_clone(thd, select);
-    if (nullptr == arg) return nullptr;
+    if (arg == nullptr) return nullptr;
 
     new_item = new (thd->pq_mem_root) Item_sum_and(POS(), arg, nullptr);
   }
@@ -1613,7 +1621,7 @@ PQ_REBUILD_SUM_RETURN
 
 PQ_CLONE_DEF(Item_sum_or) {
     Item *arg = args[0]->pq_clone(thd, select);
-    if (nullptr == arg) return nullptr;
+    if (arg == nullptr) return nullptr;
 
     new_item = new (thd->pq_mem_root) Item_sum_or(POS(), arg, nullptr);
   }
@@ -1841,7 +1849,7 @@ PQ_CLONE_DEF(Item_func_trig_cond) {
   Item *arg = nullptr;
   if (arg_count > 0)
     arg = args[0]->pq_clone(thd, select);
-  if (nullptr == arg) return nullptr;
+  if (arg == nullptr) return nullptr;
   new_item = new(thd->pq_mem_root) Item_func_trig_cond(arg, trig_var, thd->lex->unit->first_select()->join, m_idx,trig_type);
 } 
 PQ_CLONE_RETURN
@@ -1857,7 +1865,7 @@ Item *Item_func_unix_timestamp::pq_clone(THD *thd, SELECT_LEX *select) {
   Item *arg_item = nullptr;
   if (arg_count > 0) {
     arg_item = args[0]->pq_clone(thd, select);
-    if (!arg_item) return nullptr;
+    if (arg_item == nullptr) return nullptr;
   }
 
   Item_func_unix_timestamp *new_item = nullptr;

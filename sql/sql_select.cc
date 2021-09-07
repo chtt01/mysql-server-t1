@@ -2726,7 +2726,7 @@ void QEP_TAB::push_index_cond(const JOIN_TAB *join_tab, uint keyno,
       has_pq_cond = true;
       pq_cond = condition()->pq_clone(join_->thd, join_->select_lex);
 
-      if (!pq_cond) return ;
+      if (pq_cond == nullptr) return ;
     }
     DBUG_EXECUTE("where", print_where(join_->thd, condition(), "full cond",
                                       QT_ORDINARY););

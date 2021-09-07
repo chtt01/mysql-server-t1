@@ -1805,11 +1805,9 @@ QUICK_SELECT_I* QUICK_RANGE_SELECT::pq_clone(THD *thd, TABLE *table) {
   bool create_err = false;
   QUICK_SELECT_I *pq_quick =
       new QUICK_RANGE_SELECT(thd, table, index, false, nullptr, &create_err);
-  if(!pq_quick || create_err || pq_quick->pq_copy_from(thd, this) ||
+  if (create_err || pq_quick->pq_copy_from(thd, this) ||
      pq_quick->init() || DBUG_EVALUATE_IF("pq_clone_error1", true, false)) {
-    if(pq_quick) {
-      delete pq_quick;
-    }
+    delete pq_quick;
     return nullptr;
   }
   return pq_quick;
@@ -1955,7 +1953,7 @@ bool QUICK_INDEX_MERGE_SELECT::pq_copy_from(THD *thd, QUICK_SELECT_I* quick) {
   QUICK_RANGE_SELECT *quick_select;
   while ((quick_select = it++)) {
     QUICK_SELECT_I *quick_select_new = quick_select->pq_clone(thd, head);
-    if (!quick_select_new) {
+    if (quick_select_new == nullptr) {
       return true;
     }
     quick_selects.push_back((QUICK_RANGE_SELECT*)quick_select_new);
@@ -1964,11 +1962,9 @@ bool QUICK_INDEX_MERGE_SELECT::pq_copy_from(THD *thd, QUICK_SELECT_I* quick) {
   return false;
 }
 QUICK_SELECT_I* QUICK_INDEX_MERGE_SELECT::pq_clone(THD *thd, TABLE *tab){
-  QUICK_SELECT_I *pq_quick =  new QUICK_INDEX_MERGE_SELECT(thd,tab);
-  if(!pq_quick || pq_quick->pq_copy_from(thd, this) || pq_quick->init()) {
-    if(pq_quick) {
-      delete pq_quick;
-    }
+  QUICK_SELECT_I *pq_quick = new QUICK_INDEX_MERGE_SELECT(thd,tab);
+  if (pq_quick->pq_copy_from(thd, this) || pq_quick->init()) {
+    delete pq_quick;
     return nullptr;
   }
   return pq_quick;
@@ -2271,7 +2267,7 @@ bool QUICK_ROR_INTERSECT_SELECT::pq_copy_from(THD *thd, QUICK_SELECT_I* quick) {
   QUICK_RANGE_SELECT *new_quick_range_select = nullptr;
   while ((orig_quick_range_select = it++)) {
     new_quick_range_select = dynamic_cast<QUICK_RANGE_SELECT*>(orig_quick_range_select->pq_clone(thd, head));
-    if (!new_quick_range_select) return true;
+    if (new_quick_range_select == nullptr) return true;
     quick_selects.push_back(new_quick_range_select);
   }
  
@@ -2280,10 +2276,8 @@ bool QUICK_ROR_INTERSECT_SELECT::pq_copy_from(THD *thd, QUICK_SELECT_I* quick) {
 
 QUICK_SELECT_I* QUICK_ROR_INTERSECT_SELECT::pq_clone(THD *thd, TABLE *table) {
   QUICK_SELECT_I *pq_quick = new QUICK_ROR_INTERSECT_SELECT(thd, table, need_to_fetch_row, NULL);
-  if(!pq_quick || pq_quick->pq_copy_from(thd, this) || pq_quick->init()) {
-    if(pq_quick) {
-      delete pq_quick;
-    }
+  if (pq_quick->pq_copy_from(thd, this) || pq_quick->init()) {
+    delete pq_quick;
     return nullptr;
   }
   return pq_quick;
@@ -2404,7 +2398,7 @@ bool QUICK_ROR_UNION_SELECT::pq_copy_from(THD *thd, QUICK_SELECT_I *quick) {
   QUICK_SELECT_I *quick_select;
   while ((quick_select = it++)) {
     QUICK_SELECT_I *quick_select_new = quick_select->pq_clone(thd, head);
-    if (!quick_select_new) {
+    if (quick_select_new == nullptr) {
       return true;
     }
     quick_selects.push_back(quick_select_new);
@@ -2416,11 +2410,9 @@ bool QUICK_ROR_UNION_SELECT::pq_copy_from(THD *thd, QUICK_SELECT_I *quick) {
 QUICK_SELECT_I* QUICK_ROR_UNION_SELECT::pq_clone(THD *thd, TABLE *table) {
   QUICK_SELECT_I *pq_quick =
       new QUICK_ROR_UNION_SELECT(thd, table);
-  if(!pq_quick || pq_quick->pq_copy_from(thd, this) ||
+  if (pq_quick->pq_copy_from(thd, this) ||
      pq_quick->init() || DBUG_EVALUATE_IF("pq_clone_error1", true, false)) {
-    if(pq_quick) {
-      delete pq_quick;
-    }
+    delete pq_quick;
     return nullptr;
   }
   return pq_quick;

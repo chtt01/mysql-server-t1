@@ -1302,16 +1302,16 @@ int ha_innobase::pq_leader_range_select_scan_init(uint keyno, void *&pq_ctx, uin
           pq_reader->add_scan(trx, config, nullptr,false);
      pq_reader->snapshot = trx->read_view;
 
-     if (!success) {
+     if (heap != nullptr) {
+       mem_heap_free(heap);
+     }
+     if (success != DB_SUCCESS) {
         UT_DELETE(pq_reader);
         return (HA_ERR_GENERIC);
      }
 
-     if(pq_reverse_scan)
+     if (pq_reverse_scan)
        pq_reader->pq_set_reverse_scan();
-
-     if(heap)
-       mem_heap_free(heap);
   }
 
   pq_ctx = pq_reader;
@@ -1422,17 +1422,16 @@ int ha_innobase::pq_leader_ref_init(uint keyno, void *&pq_ctx, uint &n_threads)
        pq_reader->add_scan(trx, config, nullptr, false);
   pq_reader->snapshot = trx->read_view;
 
-  if (!success) {
+  if (heap != nullptr) {
+    mem_heap_free(heap);
+  }
+  if (success != DB_SUCCESS) {
      UT_DELETE(pq_reader);
      return (HA_ERR_GENERIC);
   }
   
-  if(pq_reverse_scan)
+  if (pq_reverse_scan)
      pq_reader->pq_set_reverse_scan();
-
-  if(heap)
-    mem_heap_free(heap);
-
   pq_ctx = pq_reader;
   build_template(false);
 
@@ -1515,7 +1514,7 @@ int ha_innobase::pq_leader_scan_init(uint keyno, void *&pq_ctx, uint &n_threads)
         pq_reader->add_scan(trx, config, nullptr, false);
   pq_reader->snapshot = trx->read_view;
 
-  if (!success) {
+  if (success != DB_SUCCESS) {
       UT_DELETE(pq_reader);
       return (HA_ERR_GENERIC);
   }

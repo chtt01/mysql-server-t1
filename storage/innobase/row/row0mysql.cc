@@ -999,7 +999,7 @@ void row_prebuilt_free(
   }
 
   prebuilt->m_lob_undo.destroy();
-  prebuilt->ctx = NULL;
+  prebuilt->ctx = nullptr;
 
   if(prebuilt->pq_heap) {
     mem_heap_free(prebuilt->pq_heap);
