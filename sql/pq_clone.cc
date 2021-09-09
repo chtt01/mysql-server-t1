@@ -45,10 +45,14 @@ bool POSITION::pq_copy(THD *thd, POSITION *orig) {
   prefix_rowcount = orig->prefix_rowcount;
   prefix_cost = orig->prefix_cost;
   table = orig->table;
-  if (orig->key)
+  if (orig->key) {
     key = orig->key->pq_clone(thd);
-  else
+    if (key == nullptr) {
+      return true;
+    }
+  } else {
     key = nullptr;
+  }
   ref_depend_map = orig->ref_depend_map;
   use_join_buffer = orig->use_join_buffer;
   sj_strategy = orig->sj_strategy;
@@ -90,9 +94,9 @@ bool QEP_TAB::pq_copy(THD *thd, QEP_TAB *orig) {
   set_position(position);
   if (orig->pq_cond) {
     JOIN *join = this->join();
-    if (!join) return true;
+    if (join == nullptr) return true;
     pq_cond = orig->pq_cond->pq_clone(join->thd, join->select_lex);
-    if (!pq_cond) return true;
+    if (pq_cond == nullptr) return true;
   }
 
   return false;
@@ -159,6 +163,9 @@ bool TABLE_REF::pq_copy(JOIN *join, TABLE_REF *ref, QEP_TAB *qep_tab) {
 
   for (uint i = 0; i < key_parts; i++) {
     items[i] = ref->items[i]->pq_clone(thd, join->select_lex);
+    if (items[i] == nullptr) {
+      return true;
+    }
     DBUG_ASSERT(DBUG_EVALUATE_IF("skip_pq_clone_check", true, false) ||
                 items[i]);
     if (!items[i]->fixed)
@@ -312,7 +319,9 @@ bool pq_dup_tabs(JOIN *join, JOIN *orig, bool setup MY_ATTRIBUTE((unused))) {
     QEP_TAB *orig_tab = &orig->qep_tab[i];
 
     //phase 3. Set tables to qep_tab according to db/table name
-    tab->pq_copy(join->thd, orig_tab);
+    if (tab->pq_copy(join->thd, orig_tab)) {
+      goto err;
+    }
     TABLE *tb = orig_tab->table();
     tab->table_name = new (join->thd->pq_mem_root)
         LEX_CSTRING{tb->s->table_name.str, tb->s->table_name.length};
@@ -352,7 +361,9 @@ bool pq_dup_tabs(JOIN *join, JOIN *orig, bool setup MY_ATTRIBUTE((unused))) {
       goto err;
 
     if (orig_tab->table()) {
-      tab->table()->pq_copy(join->thd, (void *)select, orig_tab->table());
+      if (tab->table()->pq_copy(join->thd, (void *)select, orig_tab->table())) {
+        goto err;
+      }
       tab->set_keyread_optim();
     }
 
@@ -362,7 +373,7 @@ bool pq_dup_tabs(JOIN *join, JOIN *orig, bool setup MY_ATTRIBUTE((unused))) {
       Item *cond = condition->pq_clone(join->thd, select);
       DBUG_ASSERT(DBUG_EVALUATE_IF("skip_pq_clone_check", true, false) ||
                   cond);
-      if (!cond) goto err;
+      if (cond == nullptr) goto err;
       if (cond->fix_fields(join->thd, &cond)) {
         goto err;
       }
@@ -376,7 +387,7 @@ bool pq_dup_tabs(JOIN *join, JOIN *orig, bool setup MY_ATTRIBUTE((unused))) {
       Item *cond = cache_idx_cond->pq_clone(join->thd, select);
       DBUG_ASSERT(DBUG_EVALUATE_IF("skip_pq_clone_check", true, false) ||
                   cond);
-      if (!cond) goto err;
+      if (cond == nullptr) goto err;
       if (cond->fix_fields(join->thd, &cond)) {
         goto err;
       }
@@ -394,11 +405,14 @@ bool pq_dup_tabs(JOIN *join, JOIN *orig, bool setup MY_ATTRIBUTE((unused))) {
     //phase 6. copy quick select
     MEM_ROOT *saved_mem_root= join->thd->mem_root;
     if (orig_tab->quick()) {
-      tab->set_quick(orig_tab->quick()->pq_clone(
-          join->thd, tab->table()));
+      QUICK_SELECT_I* quick = orig_tab->quick()->pq_clone(
+          join->thd, tab->table());
       DBUG_ASSERT(DBUG_EVALUATE_IF("pq_clone_error1", true, false) ||
-                  tab->quick());
-      if (! tab->quick()) goto err;
+                  quick);
+      if (quick == nullptr) {
+        goto err;
+      }
+      tab->set_quick(quick);
       tab->set_quick_optim();
     }
     join->thd->mem_root= saved_mem_root;
@@ -872,7 +886,7 @@ SELECT_LEX *pq_dup_select(THD *thd, SELECT_LEX *orig) {
     new_item = item->pq_clone(thd, select);
     DBUG_ASSERT(DBUG_EVALUATE_IF("skip_pq_clone_check", true, false) ||
                 new_item);
-    if (!new_item) goto err;
+    if (new_item == nullptr) goto err;
 
     select->item_list.push_back(new_item);
   }
@@ -935,7 +949,7 @@ SELECT_LEX *pq_dup_select(THD *thd, SELECT_LEX *orig) {
   if (orig->where_cond()) {
     where = orig->where_cond()->pq_clone(thd, select);
     DBUG_ASSERT(DBUG_EVALUATE_IF("skip_pq_clone_check", true, false) || where);
-    if (!where) goto err;
+    if (where == nullptr) goto err;
     select->set_where_cond(where);
   } else
     select->set_where_cond(nullptr);
@@ -944,7 +958,7 @@ SELECT_LEX *pq_dup_select(THD *thd, SELECT_LEX *orig) {
   if (orig->having_cond()) {
     having = orig->having_cond()->pq_clone(thd, select);
     DBUG_ASSERT(DBUG_EVALUATE_IF("skip_pq_clone_check", true, false) || having);
-    if (!having) goto err;
+    if (having == nullptr) goto err;
     select->set_having_cond(having);
   } else
     select->set_having_cond(nullptr);
