@@ -140,7 +140,7 @@ class PQblockScanIterator final : public TableRowIterator {
  */
 class PQExplainIterator : public RowIterator {
  public:
-  PQExplainIterator() :RowIterator(NULL) {}
+  PQExplainIterator(THD *thd) : RowIterator(nullptr), thd(thd) {}
   ~PQExplainIterator() {}
 
   void copy(RowIterator* src_iterator);
@@ -154,6 +154,7 @@ class PQExplainIterator : public RowIterator {
   std::string TimingString() const {return time_string;}
   
   private:
+    THD *thd;
     std::vector<std::string> str;
     std::vector<unique_ptr_destroy_only<PQExplainIterator>> iter;
     std::vector<Child> ch;

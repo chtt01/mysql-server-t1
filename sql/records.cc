@@ -819,7 +819,7 @@ void PQExplainIterator::copy(RowIterator* src_iterator) {
     time_string = src_iterator->TimingString();
 
     for (const RowIterator::Child &child : src_iterator->children()) {
-        unique_ptr_destroy_only<PQExplainIterator> it(new PQExplainIterator()); 
+        unique_ptr_destroy_only<PQExplainIterator> it(new (thd->pq_mem_root) PQExplainIterator(thd)); 
         it->copy(child.iterator);
         ch.push_back({it.get(), child.description});
         iter.push_back(std::move(it));     
