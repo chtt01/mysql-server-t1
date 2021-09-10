@@ -475,7 +475,7 @@ void pq_free_gather(Gather_operator *gather) {
   for (uint i = 0; i < gather->m_dop; i++) {
     if (gather->m_workers[i]->thd_worker) {
       gather->m_workers[i]->thd_worker->store_globals();
-      pq_free_join(gather->m_workers[i]->thd_worker->lex->unit->first_select()->join);
+      gather->m_workers[i]->thd_worker->lex->unit->cleanup(gather->m_workers[i]->thd_worker, true);
       pq_free_thd(gather->m_workers[i]->thd_worker);
     }
   }
