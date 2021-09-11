@@ -1046,6 +1046,10 @@ static bool pq_select_prepare(THD *thd, SELECT_LEX *select, List<Item> &orig_all
   select->hidden_order_field_count =
       select->all_fields.elements - all_fields_count;
 
+  if (select->order_list.elements && select->setup_order_final(thd)) {
+    return true;
+  }
+
   // Setup.4: check item's property */
   if (select->all_fields.elements != orig_all_fields.elements) {
     return true;
