@@ -200,6 +200,9 @@ PQ_CLONE_RETURN
 
 PQ_CLONE_DEF(Item_cache_int) {
     new_item = new (thd->pq_mem_root) Item_cache_int();
+    if (new_item == nullptr) {
+      return nullptr;
+    }
     if (origin_item) {
       new_item->example = origin_item->pq_clone(thd, select);
       if (new_item->example == nullptr) {
