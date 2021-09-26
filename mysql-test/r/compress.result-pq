@@ -1820,7 +1820,7 @@ fld1	count(*)
 select sum(Period)/count(*) from t1;
 sum(Period)/count(*)
 9410.0000
-select companynr,count(price) as "count",sum(price) as "sum" ,abs(sum(price)/count(price)-avg(price)) as "diff",(0+count(price))*companynr as func from t3 group by companynr;
+select companynr,count(price) as "count",sum(price) as "sum" ,abs(sum(price)/count(price)-avg(price)) as "diff",(0+count(price))*companynr as func from t3 group by companynr order by companynr;
 companynr	count	sum	diff	func
 37	12543	309394878010	0.0000	464091
 78	8362	414611089292	0.0000	652236
@@ -4110,7 +4110,7 @@ fld1	count(*)
 select sum(Period)/count(*) from t1;
 sum(Period)/count(*)
 9410.0000
-select companynr,count(price) as "count",sum(price) as "sum" ,abs(sum(price)/count(price)-avg(price)) as "diff",(0+count(price))*companynr as func from t3 group by companynr;
+select companynr,count(price) as "count",sum(price) as "sum" ,abs(sum(price)/count(price)-avg(price)) as "diff",(0+count(price))*companynr as func from t3 group by companynr order by companynr;
 companynr	count	sum	diff	func
 37	12543	309394878010	0.0000	464091
 78	8362	414611089292	0.0000	652236

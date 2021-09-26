@@ -1718,7 +1718,15 @@ select t2.fld1,count(*) from t2,t3 where t2.fld1=158402 and t3.name=t2.fld3 grou
 #
 
 select sum(Period)/count(*) from t1;
-select companynr,count(price) as "count",sum(price) as "sum" ,abs(sum(price)/count(price)-avg(price)) as "diff",(0+count(price))*companynr as func from t3 group by companynr;
+if (!$PQ_TEST)
+{
+  select companynr,count(price) as "count",sum(price) as "sum" ,abs(sum(price)/count(price)-avg(price)) as "diff",(0+count(price))*companynr as func from t3 group by companynr;
+}
+
+if ($PQ_TEST)
+{
+  select companynr,count(price) as "count",sum(price) as "sum" ,abs(sum(price)/count(price)-avg(price)) as "diff",(0+count(price))*companynr as func from t3 group by companynr order by companynr;
+}
 select companynr,sum(price)/count(price) as avg from t3 group by companynr having avg > 70000000 order by avg;
 
 #
@@ -1738,8 +1746,14 @@ select t2.fld4,t2.fld1,count(price),sum(price),min(price),max(price),avg(price) 
 #           sort tmp table according to order (or group if no order)
 #	    send rows
 #
-
-select t3.companynr,fld3,sum(price) from t3,t2 where t2.fld1 = t3.t2nr and t3.companynr = 512 group by companynr,fld3 order by companynr,fld3;
+if (!$PQ_TEST)
+{
+  select t3.companynr,fld3,sum(price) from t3,t2 where t2.fld1 = t3.t2nr and t3.companynr = 512 group by companynr,fld3 order by companynr;
+}
+if ($PQ_TEST)
+{
+  select t3.companynr,fld3,sum(price) from t3,t2 where t2.fld1 = t3.t2nr and t3.companynr = 512 group by companynr,fld3 order by companynr,fld3;
+}
 select t2.companynr,count(*),min(fld3),max(fld3),sum(price),avg(price) from t2,t3 where t3.companynr >= 30 and t3.companynr <= 58 and t3.t2nr = t2.fld1 and 1+1=2 group by t2.companynr order by t2.companynr;
 
 #
