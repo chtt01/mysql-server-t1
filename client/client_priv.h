@@ -1,6 +1,6 @@
 /*
    Copyright (c) 2001, 2019, Oracle and/or its affiliates. All rights reserved.
-   Copyright (c) 2021, Huawei Technologies Co., Ltd.
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
    as published by the Free Software Foundation.
@@ -142,7 +142,6 @@ enum options_client {
   OPT_AUTO_VERTICAL_OUTPUT,
   OPT_DEBUG_INFO,
   OPT_DEBUG_CHECK,
-  OPT_PQ,
   OPT_COLUMN_TYPES,
   OPT_ERROR_LOG_FILE,
   OPT_WRITE_BINLOG,

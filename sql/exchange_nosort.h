@@ -1,7 +1,7 @@
-#ifndef MYSQL_PQ_SQL_GLOBAL_H
-#define MYSQL_PQ_SQL_GLOBAL_H
+#ifndef EXCHANGE_NOSORT_H
+#define EXCHANGE_NOSORT_H
 
-/* Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2020, Oracle and/or its affiliates. All Rights Reserved.
    Copyright (c) 2021, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
@@ -24,24 +24,34 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
 
-#include <iostream>
-#include <memory>
-#include "my_compiler.h"
-#include "my_alloc.h"
+#include "exchange.h"
 
-#define TIME_THOUSAND 1000
-#define TIME_MILLION  1000000
-#define TIME_BILLION  1000000000
+class Exchange_nosort : public Exchange {
+ public:
+  Exchange_nosort() : Exchange(), m_next_queue(0), m_active_readers(0) {}
 
-template<typename T>
-T atomic_add(T &value, T n) {
-  return __sync_fetch_and_add(&value, n);
-}
+  Exchange_nosort(THD *thd, TABLE *table, int workers, int ref_length,
+                  bool stab_output)
+      : Exchange(thd, table, workers, ref_length, stab_output),
+        m_next_queue(0),
+        m_active_readers(workers) {}
 
-template<typename T>
-T atomic_sub(T &value, T n) {
-  return __sync_fetch_and_sub(&value, n);
-}
+  virtual ~Exchange_nosort() {}
 
-#endif //MYSQL_PQ_SQL_GLOBAL_H
+  /** read/convert one message from mq to table->record[0] */
+  bool read_mq_record() override;
 
+  inline EXCHANGE_TYPE get_exchange_type() override { return EXCHANGE_NOSORT; }
+
+ private:
+  /** read one message from MQ[next_queue] */
+  bool get_next(void **datap, uint32 *len, bool *done);
+  /** read one message from MQ in a round-robin manner */
+  bool read_next(void **datap, uint32 *len);
+  
+  int m_next_queue;     /** the next read queue */
+  int m_active_readers; /** number of left queues which is sending or
+                            receiving message */
+};
+
+#endif  // EXCHANGE_NOSORT_H

@@ -54,8 +54,6 @@
 #define MEM_ROOT_SINGLE_CHUNKS 0
 #endif
 
-const int PQ_MEMORY_USED_BUCKET = 16;
-
 MEM_ROOT::Block *MEM_ROOT::AllocBlock(size_t length) {
   DBUG_TRACE;
 
@@ -109,10 +107,13 @@ void *MEM_ROOT::Alloc(size_t length) {
 
     ret = AllocSlow(length);
     DBUG_ASSERT(m_allocated_size >= old_alloc_size);
-    if (allocCBFunc && (m_allocated_size - old_alloc_size))
-      allocCBFunc(m_psi_key, m_allocated_size - old_alloc_size,
-          ((reinterpret_cast<unsigned long>(this) >> PQ_MEMORY_USED_BUCKET) & 0xf));
-    
+    if (allocCBFunc && (m_allocated_size - old_alloc_size)) {
+      allocCBFunc(
+          m_psi_key, m_allocated_size - old_alloc_size,
+          ((reinterpret_cast<unsigned long>(this) >> PQ_MEMORY_USED_BUCKET) &
+           0xf));
+    }
+
     return ret;
 }
 
@@ -171,10 +172,12 @@ void MEM_ROOT::Clear() {
   DBUG_TRACE;
   DBUG_PRINT("enter", ("root: %p", this));
 
-  if (freeCBFunc && m_allocated_size) 
-    freeCBFunc(m_psi_key, m_allocated_size, 
+  if (freeCBFunc && m_allocated_size) {
+    freeCBFunc(
+        m_psi_key, m_allocated_size,
         (reinterpret_cast<unsigned long>(this) >> PQ_MEMORY_USED_BUCKET) & 0xf);
- 
+  }
+
   // Already cleared, or memset() to zero, so just ignore.
   if (m_current_block == nullptr) return;
 
@@ -210,10 +213,12 @@ void MEM_ROOT::ClearForReuse() {
   m_current_block->prev = nullptr;
   m_allocated_size = m_current_free_end - m_current_free_start;
 
-  if (freeCBFunc && (old_alloc_size - m_allocated_size)) 
-    freeCBFunc(m_psi_key, old_alloc_size - m_allocated_size, 
+  if (freeCBFunc && (old_alloc_size - m_allocated_size)) {
+    freeCBFunc(
+        m_psi_key, old_alloc_size - m_allocated_size,
         (reinterpret_cast<uintptr_t>(this) >> PQ_MEMORY_USED_BUCKET) & 0xf);
- 
+  }
+
   FreeBlocks(start);
 }
 
