@@ -445,7 +445,7 @@ Field *create_tmp_field(THD *thd, TABLE *table, Item *item, Item::Type type,
       DBUG_ASSERT(false);
       break;
   }
-  if (result != nullptr) {
+  if (result != nullptr && thd->parallel_exec) {
     result->extra_length = item->pq_extra_len(group);
   }
   return result;
