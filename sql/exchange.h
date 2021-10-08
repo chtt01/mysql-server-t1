@@ -1,9 +1,9 @@
-#ifndef _EXCHAGE_H
-#define _EXCHAGE_H
+#ifndef EXCHAGE_H
+#define EXCHAGE_H
 
 /* Copyright (c) 2020, Oracle and/or its affiliates. All Rights Reserved.
    Copyright (c) 2021, Huawei Technologies Co., Ltd.
-   
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
    as published by the Free Software Foundation.
@@ -27,17 +27,12 @@
 #include "msg_queue.h"
 
 class Exchange {
-private:
-  uint32 m_nqueues; 
-  MQ_event *m_receiver;
-  uint m_ref_length;
-  bool m_stab_output;
-public:
-  MQueue_handle **mqueue_handles;
-  THD *m_thd;
-  TABLE *m_table;
+ public:
+  enum EXCHANGE_TYPE {
+    EXCHANGE_NOSORT = 0,
+    EXCHANGE_SORT,
+  };
 
-public:
   Exchange()
       : m_nqueues(0),
         m_receiver(nullptr),
@@ -45,106 +40,57 @@ public:
         m_stab_output(false),
         mqueue_handles(nullptr),
         m_thd(nullptr),
-        m_table(nullptr)
-  {}
+        m_table(nullptr) {}
 
-  Exchange(THD *thd, TABLE *table, uint32 workers, uint ref_length, bool stab_output=false)
+  Exchange(THD *thd, TABLE *table, uint32 workers, uint ref_length,
+           bool stab_output = false)
       : m_nqueues(workers),
         m_receiver(nullptr),
         m_ref_length(ref_length),
         m_stab_output(stab_output),
         mqueue_handles(nullptr),
         m_thd(thd),
-        m_table(table)
-  {}
+        m_table(table) {}
 
-  enum EXCHANGE_TYPE {
-    EXCHANGE_NOSORT= 0,
-    EXCHANGE_SORT,
-  };
   virtual ~Exchange() {}
 
-public:
+  virtual bool read_mq_record() = 0;
+  virtual EXCHANGE_TYPE get_exchange_type() = 0;
   virtual bool init();
   virtual void cleanup();
   virtual bool convert_mq_data_to_record(uchar *data, int msg_len,
                                          uchar *row_id = nullptr);
 
-  inline THD *get_thd()
-  {
-    return m_thd ? m_thd : current_thd;
-  }
+  inline THD *get_thd() { return m_thd ? m_thd : current_thd; }
 
-  inline MQueue_handle *get_mq_handle(uint32 i)
-  {
+  inline MQueue_handle *get_mq_handle(uint32 i) {
     DBUG_ASSERT(mqueue_handles);
-    DBUG_ASSERT( i < m_nqueues);
+    DBUG_ASSERT(i < m_nqueues);
     return mqueue_handles[i];
   }
 
-  inline void mqueue_mmove(int mq_next_readers, int number_workers)
-  {
-    memmove(&mqueue_handles[mq_next_readers], &mqueue_handles[mq_next_readers + 1],
+  inline void mqueue_mmove(int mq_next_readers, int number_workers) {
+    memmove(&mqueue_handles[mq_next_readers],
+            &mqueue_handles[mq_next_readers + 1],
             sizeof(MQueue_handle *) * (number_workers - mq_next_readers));
   }
 
-  inline int lanuch_workers ()
-  {
-    return m_nqueues;
-  }
+  inline int lanuch_workers() { return m_nqueues; }
 
-  inline TABLE* get_table()
-  {
-    return m_table;
-  }
+  inline TABLE *get_table() { return m_table; }
 
-  inline int ref_length()
-  {
-    return m_ref_length;
-  }
+  inline int ref_length() { return m_ref_length; }
 
-  inline bool is_stable()
-  {
-    return m_stab_output;
-  }
-  virtual bool read_mq_record() = 0;
-  virtual EXCHANGE_TYPE get_exchange_type() = 0;
+  inline bool is_stable() { return m_stab_output; }
+
+ private:
+  uint32 m_nqueues;
+  MQ_event *m_receiver;
+  uint m_ref_length;
+  bool m_stab_output;
+  MQueue_handle **mqueue_handles;
+  THD *m_thd;
+  TABLE *m_table;
 };
 
-class Exchange_nosort : public Exchange {
-private:
-  int m_next_queue;          /** the next read queue */
-  int m_active_readers;      /** number of left queues which is sending or
-                                 receiving message */
-  /** read one message from MQ[next_queue] */
-  bool get_next(void **datap, uint32 *len, bool *done);
-  /** read one message rom MQ in a round-robin manner */
-  bool read_next(void **datap, uint32 *len);
-
-public:
-  Exchange_nosort()
-      : Exchange(),
-        m_next_queue(0),
-        m_active_readers(0)
-  {}
-
-  Exchange_nosort(THD *thd, TABLE *table, int workers, int ref_length, bool stab_output)
-      : Exchange(thd, table, workers, ref_length, stab_output)
-  {
-    m_next_queue= 0;
-    m_active_readers= workers;
-  }
-
-  virtual ~Exchange_nosort() {}
-
-  /** read/convert one message from mq to table->record[0] */
-  bool read_mq_record() override;
-
-  inline EXCHANGE_TYPE get_exchange_type() override
-  {
-    return EXCHANGE_NOSORT;
-  }
-
-};
-
-#endif
+#endif  // EXCHAGE_H
