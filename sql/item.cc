@@ -164,7 +164,10 @@ Item::Item(THD *thd, const Item *item)
       derived_used(item->derived_used),
       m_accum_properties(item->m_accum_properties) {
 #ifndef DBUG_OFF
-  /*PQ will build a tmp table to store result, so the origin item of tmp item which is created by resolvation could be uncontextualized*/
+  /*
+    PQ will build a tmp table to store result, so the origin item of tmp item 
+    which is created by resolvation could be uncontextualized.
+  */
   DBUG_ASSERT(thd->parallel_exec || item->contextualized);
   contextualized = true;
 #endif  // DBUG_OFF
@@ -1821,44 +1824,12 @@ void Item_name_const::print(const THD *thd, String *str,
   str->append(')');
 }
 
-/*
- need a special class to adjust printing : references to aggregate functions
- must not be printed as refs because the aggregate functions that are added to
- the front of select list are not printed as well.
-*/
-class Item_aggregate_ref : public Item_ref {
- public:
-  Item_aggregate_ref(Name_resolution_context *context_arg, Item **item,
-                     const char *table_name_arg, const char *field_name_arg,
-                     SELECT_LEX *depended_from_arg)
-      : Item_ref(context_arg, item, table_name_arg, field_name_arg) {
-    depended_from = depended_from_arg;
-  }
-
-  void print(const THD *thd, String *str,
-             enum_query_type query_type) const override {
-    if (ref)
-      (*ref)->print(thd, str, query_type);
-    else
-      Item_ident::print(thd, str, query_type);
-  }
-  Ref_Type ref_type() const override { return AGGREGATE_REF; }
-
-  /**
-    Walker processor used by SELECT_LEX::transform_grouped_to_derived to replace
-    an aggregate's reference to one in the new derived table's (hidden) select
-    list.
-
-    @param  arg  An info object of type Item::Aggregate_ref_update
-    @returns false
-  */
-  bool update_aggr_refs(uchar *arg) override {
+bool Item_aggregate_ref::update_aggr_refs(uchar *arg) {
     auto *info = pointer_cast<Item::Aggregate_ref_update *>(arg);
     if (*ref != info->m_target) return false;
     ref = info->m_owner->add_hidden_item(info->m_target);
     return false;
-  }
-};
+}
 
 /**
   1. Move SUM items out from item tree and replace with reference.
@@ -2757,8 +2728,11 @@ my_decimal *Item_field::val_decimal(my_decimal *decimal_value) {
 }
 
 const uchar *Item_field::val_extra(uint32 *len) {
+  DBUG_ASSERT(len != nullptr);
   *len = field->extra_length;
-  if(*len == 0) return nullptr;
+  if (*len == 0) {
+    return nullptr;
+  }
 
   return (field->ptr + field->pack_length() - *len);
 }
@@ -6079,7 +6053,7 @@ type_conversion_status Item::save_in_field_inner(Field *field,
                                                  bool no_conversions) {
   uint32 extra_len;
   const uchar *extra = val_extra(&extra_len);
-  field->store_extra(extra,extra_len);
+  field->store_extra(extra, extra_len);
 
   // Storing of arrays should be handled by specialized subclasses.
   DBUG_ASSERT(!returns_array());

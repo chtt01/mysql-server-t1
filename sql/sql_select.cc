@@ -927,7 +927,7 @@ void thd_set_thread_stack(THD *thd, const char *stack_start);
   query blocks combined with UNION.
 */
 
-bool Sql_cmd_dml::execute_inner(THD *thd){
+bool Sql_cmd_dml::execute_inner(THD *thd) {
   SELECT_LEX_UNIT *unit = lex->unit;
 
   if (unit->optimize(thd, /*materialize_destination=*/nullptr)) return true;
@@ -942,9 +942,10 @@ bool Sql_cmd_dml::execute_inner(THD *thd){
   if (thd->m_suite_for_pq == PqConditionStatus::ENABLED)
   {
     PQ_exec_status status = make_pq_leader_plan(thd);
-    if (status == PQ_exec_status::ABORT_EXEC)
+    if (status == PQ_exec_status::ABORT_EXEC) {
       return true;
-    
+    }
+      
     DBUG_ASSERT(status == PQ_exec_status::SEQ_EXEC || 
         status == PQ_exec_status::PARL_EXEC);
 
@@ -954,8 +955,7 @@ bool Sql_cmd_dml::execute_inner(THD *thd){
   if (lex->is_explain()) {
     if (explain_query(thd, thd, unit)) return true; /* purecov: inspected */
   } else {
-    if (unit->execute(thd)) 
-      return true;
+    if (unit->execute(thd)) return true;
   }
 
   return false;
@@ -1736,38 +1736,40 @@ bool JOIN::destroy() {
   m_root_iterator.reset();
 
   /*
-   * for worker (or normal mode), we know that qep_tab0 = qep_tab, and qep_tab1 = NULL;
-   * Nevertheless, qep_tab0 = old(qep_tab), and qep_tab = qep_tab1 = new (qep_tab) for leader.
-   * Note that: as qep_tab0 and qep_tab (qep_tab1) share the same QEP_shared_owner (i.e., m_qs),
-   *            they must have the same table info.
-   */
+    for worker (or normal mode), we know that qep_tab0 = qep_tab, and qep_tab1 = NULL;
+    Nevertheless, qep_tab0 = old(qep_tab), and qep_tab = qep_tab1 = new (qep_tab) for leader.
+    Note that: as qep_tab0 and qep_tab (qep_tab1) share the same QEP_shared_owner (i.e., m_qs),
+    they must have the same table info.
+  */
   if (qep_tab0) {
     DBUG_ASSERT(!join_tab);
     uint tables_num = tables >= old_tables ? tables : old_tables;
     for (uint i = 0; i < tables_num; i++) {
-      QEP_TAB *qtab;
-      qtab = &qep_tab[i];
+      QEP_TAB *qtab = &qep_tab[i];
       if (qtab->gather && !thd->running_explain_analyze && !thd->is_worker()) {
         qtab->gather->end();
         qtab->gather = nullptr;
       }
+
       TABLE *table = qep_tab0[i].table();
       TABLE *old_table = qep_tab0[i].old_table();
 
-      if (NULL != table) {
+      if (table != nullptr) {
         table->sorting_iterator = nullptr;
         table->duplicate_removal_iterator = nullptr;
       }
 
-      if (NULL != old_table) {
-        old_table->sorting_iterator = NULL;
-        old_table->duplicate_removal_iterator = NULL;
+      if (old_table != nullptr) {
+        old_table->sorting_iterator = nullptr;
+        old_table->duplicate_removal_iterator = nullptr;
       }
 
-      /* only clean iterator, filesort, op (etc.) info.  */
-      if (qep_tab1) qep_tab1[i].cleanup(false);
-      qep_tab0[i].cleanup(true);
+      /* only clean iterator, filesort, op (etc.) info. */
+      if (qep_tab1 != nullptr) {
+        qep_tab1[i].cleanup(false);
+      }
 
+      qep_tab0[i].cleanup(true);
     }
   }
   if (join_tab || best_ref) {
@@ -2725,8 +2727,7 @@ void QEP_TAB::push_index_cond(const JOIN_TAB *join_tab, uint keyno,
     {
       has_pq_cond = true;
       pq_cond = condition()->pq_clone(join_->thd, join_->select_lex);
-
-      if (pq_cond == nullptr) return ;
+      if (pq_cond == nullptr) { return; }
     }
     DBUG_EXECUTE("where", print_where(join_->thd, condition(), "full cond",
                                       QT_ORDINARY););
@@ -3284,9 +3285,9 @@ void JOIN_TAB::cleanup() {
 }
 
 
-/*
- * As qep_tab0 and qep_tab1 share the same table info., we only free these tables once
- * and the free procedure is finished in qep_tab0.
+/**
+  As qep_tab0 and qep_tab1 share the same table info, we only free these tables once
+  and the free procedure is finished in qep_tab0.
 */
 void QEP_TAB::cleanup(bool is_free) {
   // Delete parts specific of QEP_TAB:
@@ -3301,7 +3302,7 @@ void QEP_TAB::cleanup(bool is_free) {
   if (t) t->reginfo.qep_tab = nullptr;
 
   // Delete shared parts:
-  if (is_free) qs_cleanup();
+  if (is_free) { qs_cleanup(); }
 
   // Order of qs_cleanup() and this, matters:
   if (is_free) {
@@ -3309,17 +3310,22 @@ void QEP_TAB::cleanup(bool is_free) {
         op_type == QEP_TAB::OT_AGGREGATE_THEN_MATERIALIZE ||
         op_type == QEP_TAB::OT_AGGREGATE_INTO_TMP_TABLE ||
         op_type == QEP_TAB::OT_WINDOWING_FUNCTION) {
-
-      /** free only tmp table */
-      if (old_t)
+      // free only tmp table
+      if (old_t != nullptr) {
         free_tmp_table(current_thd, old_t);
-      if (t)  // Check tmp table is not yet freed.
+      }
+
+      // Check tmp table is not yet freed.
+      if (t != nullptr) { 
         free_tmp_table(current_thd, t);
+      } 
+        
       destroy(tmp_table_param);
       tmp_table_param = nullptr;
     } else {
-      if (t != nullptr && old_t && t->s->table_category == TABLE_CATEGORY_TEMPORARY)
+      if (t != nullptr && old_t != nullptr && t->s->table_category == TABLE_CATEGORY_TEMPORARY) {
         free_tmp_table(current_thd, t);
+      }
     }
   }
 }
@@ -3523,18 +3529,18 @@ void JOIN::cleanup() {
   set_ref_item_slice(REF_SLICE_SAVED_BASE);
 }
 
-bool JOIN::make_pq_tables_info(){
+bool JOIN::make_pq_tables_info() {
 
   DBUG_ENTER("JOIN::make_pq_tables_info");
   List<Item> *curr_all_fields, *curr_fields_list;
-  TABLE *table = NULL;
+  TABLE *table = nullptr;
   List<Item> table_item_list;
   List_iterator_fast<Item> it;
-  Query_result_mq *query_result = NULL;
-  Item *tmp_item = NULL;
+  Query_result_mq *query_result = nullptr;
+  Item *tmp_item = nullptr;
 
   bool flag = (last_slice_before_pq == REF_SLICE_SAVED_BASE) ? 1 : 0;
-  /* field comes from field_list or tmp_table's fields */
+  // field comes from field_list or tmp_table's fields
   curr_all_fields = flag ? &all_fields : &tmp_all_fields[last_slice_before_pq];
   curr_fields_list = flag ? &fields_list : &tmp_fields_list[last_slice_before_pq];
 
@@ -3553,15 +3559,14 @@ bool JOIN::make_pq_tables_info(){
 
   Temp_table_param *tmp_param = query_result->m_param;
   tmp_param->pq_copy(saved_tmp_table_param);
-  tmp_param->hidden_field_count =
-          curr_all_fields->elements - curr_fields_list->elements;
+  tmp_param->hidden_field_count = curr_all_fields->elements - curr_fields_list->elements;
   tmp_param->m_window_frame_buffer = true;
   tmp_param->skip_create_table = true;
 
   /*
-   * set saved_sum_func= true, then temp table will create a Item_field for sum funcs
-   * in tmplist, which we call it sum_field that use for recieving PQ workers's sum data
-   */
+    set saved_sum_func= true, then temp table will create a Item_field for sum funcs
+    in tmplist, which we call it sum_field that use for recieving PQ workers's sum data.
+  */
   table = create_tmp_table(thd, tmp_param, tmplist, nullptr, false, true,
                            select_lex->active_options(), HA_POS_ERROR, "", true);
   query_result->m_table = table;
@@ -3571,10 +3576,10 @@ bool JOIN::make_pq_tables_info(){
       || table->s->fields != thd->pq_leader->pq_check_fields
       || table->s->reclength != thd->pq_leader->pq_check_reclen
       || DBUG_EVALUATE_IF("pq_worker_error5", true, false)) {
-    goto err;
+    goto ERR;
   }
 
-  //we should remove const_item that doesn't generate result_field in table->field
+  // we should remove const_item that doesn't generate result_field in table->field
   it.init(tmplist);
   while ((tmp_item = it++)) {
     // check const_item
@@ -3583,7 +3588,7 @@ bool JOIN::make_pq_tables_info(){
       continue;
     }
 
-    //check Item_copy.
+    // check Item_copy.
     if (tmp_item->type() == Item::COPY_STR_ITEM) {
       Item *orig_item = down_cast<Item_copy *>(tmp_item)->get_item();
       DBUG_ASSERT(orig_item);
@@ -3592,30 +3597,41 @@ bool JOIN::make_pq_tables_info(){
         continue;
       }
     }
+
+    // check an item that refers to a summary function.
+    if (tmp_item->has_aggregation() && tmp_item->type() != Item::SUM_FUNC_ITEM) {
+      if (tmp_item->type() == Item::SUBSELECT_ITEM ||
+          (tmp_item->used_tables() & ~OUTER_REF_TABLE_BIT)) {
+        continue;
+      }
+    }
+
     table_item_list.push_back(tmp_item);
   }
 
   if (table_item_list.elements != table->s->fields
-       || alloc_ref_item_slice(thd, REF_SLICE_PQ_TMP))
-    goto err;
+       || alloc_ref_item_slice(thd, REF_SLICE_PQ_TMP)) {
+         goto ERR;
+       }
 
-  /* table_item_list consists of items needed to send to MQ,
-   *   and we store this list into REF_SLICE_PQ_TMP position
-   */
-
+  /* 
+    table_item_list consists of items needed to send to MQ,
+    and we store this list into REF_SLICE_PQ_TMP position.
+  */
   tmp_all_fields[REF_SLICE_PQ_TMP] = table_item_list;
   DBUG_RETURN(false);
 
-err:
+ERR:
   if (!thd->pq_error) {
-    //here, occurs an error
+    // here, occurs an error
     MQueue_handle *handle = query_result->get_mq_handler();
-    if (handle) {
+    if (handle != nullptr) {
       handle->send_exception_msg(ERROR_MSG);
       handle->set_datched_status(MQ_HAVE_DETACHED);
     }
     thd->pq_error = true;
   }
+
   DBUG_RETURN(true);
 }
 
@@ -4420,14 +4436,12 @@ bool JOIN::add_having_as_tmp_table_cond(uint curr_tmp_table) {
 }
 
 bool JOIN::make_leader_tables_info() {
-
   bool base_slice = (last_slice_before_pq == REF_SLICE_SAVED_BASE);
   List<Item> *curr_all_fields = base_slice ? &all_fields : &tmp_all_fields0[last_slice_before_pq];
   List<Item> *curr_fields_list = base_slice ? &fields_list : &tmp_fields_list0[last_slice_before_pq];
-
   bool materialize_join = false;
   uint curr_tmp_table = primary_tables;
-  TABLE *exec_tmp_table = NULL;
+  TABLE *exec_tmp_table = nullptr;
 
   const bool may_trace =  // just to avoid an empty trace block
       need_tmp_before_win || implicit_grouping || m_windowing_steps ||
@@ -4445,11 +4459,7 @@ bool JOIN::make_leader_tables_info() {
   tmp_table_param->pq_copy(saved_tmp_table_param);
   tmp_table_param->copy_fields.clear();
 
-  //uint last_slice_before_windowing = REF_SLICE_ACTIVE;
-
-  if (alloc_ref_item_slice(thd, REF_SLICE_SAVED_BASE))
-      DBUG_RETURN(true);
-
+  if (alloc_ref_item_slice(thd, REF_SLICE_SAVED_BASE)) { DBUG_RETURN(true); }
   copy_ref_item_slice(REF_SLICE_SAVED_BASE, REF_SLICE_ACTIVE);
   current_ref_item_slice = REF_SLICE_SAVED_BASE;
 
@@ -4463,17 +4473,17 @@ bool JOIN::make_leader_tables_info() {
 
   Temp_table_param *tmp_param =
           new (thd->mem_root) Temp_table_param(*tmp_table_param);
-  if (!tmp_param) DBUG_RETURN(true);
-
+  if (tmp_param == nullptr) { DBUG_RETURN(true); }
   tmp_param->m_window_frame_buffer = true;
-  List<Item> tmplist(*curr_all_fields, thd->mem_root);
-
-  tmp_param->hidden_field_count =
-      curr_all_fields->elements - curr_fields_list->elements;
+  tmp_param->hidden_field_count = curr_all_fields->elements - curr_fields_list->elements;
   tmp_param->skip_create_table = true;
+
+  List<Item> tmplist(*curr_all_fields, thd->mem_root);
   
-  // create_tmp_table may change the original item's result_field, hence
-  // we must save it before.
+  /*
+    create_tmp_table may change the original item's result_field, hence
+    we must save it before.
+  */
   std::vector<Field *> saved_result_field (tmplist.size(), nullptr);
   List_iterator_fast<Item> it(*curr_all_fields);
   Item *tmp_item = nullptr;
@@ -4496,13 +4506,13 @@ bool JOIN::make_leader_tables_info() {
   }
   
   /*
-   * set saved_sum_func= true, then temp table will create a Item_field for sum funcs
-   * in tmplist, which we call it sum_field that use for recieving PQ workers's sum data
-   */
+    set saved_sum_func= true, then temp table will create a Item_field for sum funcs
+    in tmplist, which we call it sum_field that use for recieving PQ workers's sum data
+  */
   TABLE *table =
           create_tmp_table(thd, tmp_param, tmplist, nullptr, false, true,
                            select_lex->active_options(), HA_POS_ERROR, "", true);
-  if (!table) DBUG_RETURN(true);
+  if (table == nullptr) { DBUG_RETURN(true); }
   table->materialized= false;
   tmp_tables = 1;
 
@@ -4513,12 +4523,12 @@ bool JOIN::make_leader_tables_info() {
   tab->set_table(table);
   tab->tmp_table_param = tmp_param;
 
-  //restore result_field->name
+  // restore result_field->name
   it.rewind();
   for (i = 0, tmp_item = it++; tmp_item; i++, tmp_item = it++) {
     if (tmp_item->type() == Item::FIELD_ITEM || tmp_item->type() == Item::DEFAULT_VALUE_ITEM) {
       // create_tmp_table may change the original item's result_field,
-      // restore field_name to pass the main.metadata test
+      // restore field_name to pass the main.metadata test.
       (down_cast<Item_field *>(tmp_item)->result_field)->field_name = saved_result_field[i]->field_name;
       if (tmp_item->const_item()) {
         uint32 length = (down_cast<Item_field *>(tmp_item)->get_orig_field())->data_length();
@@ -4539,8 +4549,10 @@ bool JOIN::make_leader_tables_info() {
   if (change_to_use_tmp_fields(
           *curr_all_fields, curr_fields_list->size(), thd,
           ref_items[REF_SLICE_PQ_TMP], &tmp_fields_list[REF_SLICE_PQ_TMP],
-          &tmp_all_fields[REF_SLICE_PQ_TMP]))
-    DBUG_RETURN(true);
+          &tmp_all_fields[REF_SLICE_PQ_TMP])) {
+            DBUG_RETURN(true);
+          }
+    
    /*
     * create sum() base on tmp table's sum_field which is sum of worker send.
     */
@@ -4552,8 +4564,10 @@ bool JOIN::make_leader_tables_info() {
   curr_fields_list = &tmp_fields_list[REF_SLICE_PQ_TMP];
   curr_all_fields = &tmp_all_fields[REF_SLICE_PQ_TMP];
   set_ref_item_slice(REF_SLICE_PQ_TMP);
-  if (qep_tab != nullptr)
+
+  if (qep_tab != nullptr) {
     qep_tab[curr_tmp_table].ref_item_slice = REF_SLICE_PQ_TMP;
+  }
 
   /* save based slice of parallel query */
   copy_ref_item_slice(REF_SLICE_SAVED_BASE, REF_SLICE_ACTIVE);
@@ -4566,8 +4580,9 @@ bool JOIN::make_leader_tables_info() {
   }
 
   if (group_list || tmp_table_param->sum_func_count) {
-     if (make_sum_func_list(*curr_all_fields, *curr_fields_list, true, true))
-        DBUG_RETURN(true);
+     if (make_sum_func_list(*curr_all_fields, *curr_fields_list, true, true)) {
+       DBUG_RETURN(true);
+     }
   }
 
   /*
@@ -5465,7 +5480,7 @@ bool JOIN::make_tmp_tables_info() {
       for (uint i = const_tables + 1; i < primary_tables; i++) {
         QEP_TAB *const tab = qep_tab + i;
         if (tab->condition() ||  // 1
-            (best_ref && best_ref[tab->idx()]->keyuse() &&
+            (best_ref != nullptr && best_ref[tab->idx()]->keyuse() &&
              tab->first_inner() == NO_PLAN_IDX))  // 2
         {
           /* We have to sort all rows */
@@ -5679,8 +5694,9 @@ bool JOIN::make_tmp_tables_info() {
 void JOIN::unplug_join_tabs() {
 
   // clone JOIN info from pq_tmp_tables_info, best_ref == NULL
-  if (tables != 0 && !(best_ref && !join_tab))
+  if (tables != 0 && !(best_ref && !join_tab)) {
     return;
+  }
 
   ASSERT_BEST_REF_IN_JOIN_ORDER(this);
 

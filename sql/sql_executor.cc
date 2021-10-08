@@ -6519,7 +6519,9 @@ bool change_to_use_tmp_fields(List<Item> &all_fields,
 #endif
     } else
       item_field = item;
-
+    if (item->type() == Item::SUM_FUNC_ITEM && item->const_item() && thd->parallel_exec) {
+      item_field = item;
+    }
     res_all_fields->push_back(item_field);
     /*
       Cf. comment explaining the reordering going on below in
