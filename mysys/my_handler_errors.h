@@ -2,7 +2,7 @@
 #define MYSYS_MY_HANDLER_ERRORS_INCLUDED
 
 /* Copyright (c) 2008, 2019, Oracle and/or its affiliates. All rights reserved.
-   Copyright (c) 2021, Huawei Technologies Co., Ltd.
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
    as published by the Free Software Foundation.
@@ -123,7 +123,6 @@ static const char *handler_error_messages[] = {
     "Invalid table name",
     "Path is too long for the OS",
     "Histogram sampling initialization failed",
-    "Complete scan all Parallel Query ranges"
 };
 
 extern void my_handler_error_register(void);

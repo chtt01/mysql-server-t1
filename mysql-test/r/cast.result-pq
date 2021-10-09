@@ -873,9 +873,10 @@ INSERT INTO t1 VALUES (3,1,'1988-12-20');
 INSERT INTO t1 VALUES (4,2,'1972-12-12');
 EXPLAIN SELECT MIN(t1.userID) = MIN(date) FROM t1  GROUP BY userid;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	4	100.00	Using temporary
+1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	4	100.00	Parallel execute (1 workers)
+2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	4	100.00	Using temporary
 Warnings:
-Note	1003	/* select#1 */ select (cast(min(`test`.`t1`.`userID`) as double) = cast(min(`test`.`t1`.`date`) as double)) AS `MIN(t1.userID) = MIN(date)` from `test`.`t1` group by `test`.`t1`.`userID`
+Note	1003	/* select#1 */ select (cast(min(`<temporary>`.`min(t1.userID)`) as double) = cast(min(`<temporary>`.`min(t1.``date``)`) as double)) AS `MIN(t1.userID) = MIN(date)` from `test`.`t1` group by `test`.`t1`.`userID`
 EXPLAIN SELECT FIRST_VALUE(date) OVER (ORDER BY spID = date) FROM t1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	4	100.00	Using filesort

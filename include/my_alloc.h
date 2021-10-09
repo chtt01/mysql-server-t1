@@ -44,6 +44,8 @@
 #include "mysql/psi/psi_memory.h"
 
 typedef void CallBackFunc(PSI_memory_key key, size_t length, unsigned int id) ;
+const int PQ_MEMORY_USED_BUCKET = 16;
+
 /**
  * The MEM_ROOT is a simple arena, where allocations are carved out of
  * larger blocks. Using an arena over plain malloc gives you two main
@@ -133,7 +135,7 @@ struct MEM_ROOT {
    * The returned pointer will always be 8-aligned.
    */
   void *Alloc(size_t length) MY_ATTRIBUTE((malloc));
- 
+
   /**
     Allocate “num” objects of type T, and default-construct them.
     If the constructor throws an exception, behavior is undefined.
@@ -316,7 +318,6 @@ public:
   CallBackFunc *allocCBFunc = nullptr;
 
   CallBackFunc *freeCBFunc = nullptr;
-
 };
 
 // Legacy C thunks. Do not use in new code.

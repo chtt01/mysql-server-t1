@@ -8215,13 +8215,8 @@ static int show_net_compression(THD *thd, SHOW_VAR *var, char *buff) {
 static int show_pq_memory(THD *, SHOW_VAR *var, char *buff) {
   var->type = SHOW_INT;
   var->value = buff;
- 
-  uint sum_memory = 0;
-  for (uint i = 0; i < PQ_MEMORY_USED_BUCKET; i++)
-    sum_memory += atomic_add<uint>(pq_memory_used[i], 0);
-
   unsigned int *value = reinterpret_cast<unsigned int *>(buff);
-  *value = sum_memory;
+  *value = get_pq_memory_total();
   return 0;
 }
 

@@ -377,41 +377,66 @@ TABLE_LIST *get_table_in_merge_tablelist(SELECT_LEX *select, TABLE_LIST *tb) {
 }
 
 Item *Item_view_ref::pq_clone(class THD *thd, class SELECT_LEX *select) {
-  Item **itme_ref = nullptr;
-  TABLE_LIST *found_table = nullptr;
-  int index = get_table_index(select->orig->table_list.first, TABLE_LIST_TYPE_DEFAULT, cached_table);
-  if (index != -1) {
-    found_table = get_table_by_index(select->table_list.first, TABLE_LIST_TYPE_DEFAULT, index);
-  } 
-
-  if (found_table == nullptr) {
-    index = get_table_index(select->orig->leaf_tables, TABLE_LIST_TYPE_GLOBAL, cached_table);
+  Item_view_ref *item = nullptr;
+  Item **item_ref = nullptr;
+  
+  if (select->orig != nullptr) {
+    TABLE_LIST *found_table = nullptr;
+    int index = get_table_index(select->orig->table_list.first, TABLE_LIST_TYPE_DEFAULT, cached_table);
     if (index != -1) {
-      found_table = get_table_by_index(select->leaf_tables, TABLE_LIST_TYPE_GLOBAL, index);
+      found_table = get_table_by_index(select->table_list.first, TABLE_LIST_TYPE_DEFAULT, index);
+    } 
+
+    if (found_table == nullptr) {
+      index = get_table_index(select->orig->leaf_tables, TABLE_LIST_TYPE_GLOBAL, cached_table);
+      if (index != -1) {
+        found_table = get_table_by_index(select->leaf_tables, TABLE_LIST_TYPE_GLOBAL, index);
+      }
     }
+  
+    if (found_table == nullptr) {
+      found_table = get_table_in_merge_tablelist(select, cached_table);
+    }
+
+    if (found_table == nullptr) {
+      return nullptr;
+    }
+
+    int field_index = find_ref_in_table(cached_table, ref);
+    if (field_index == -1 ||
+        found_table->field_translation == nullptr ||
+        found_table->field_translation_end - found_table->field_translation <= field_index) {
+      return nullptr;
+    }
+
+    item_ref = &found_table->field_translation[field_index].item;
+    item = new (thd->pq_mem_root) Item_view_ref(&select->context, item_ref, table_name, orig_table_name,
+                                  field_name, found_table);
+  } else {
+    item_ref = new (thd->pq_mem_root) Item*();
+    item = new (thd->pq_mem_root) Item_view_ref(&select->context, item_ref, table_name, orig_table_name,
+                                  field_name, cached_table);
   }
- 
-  if (found_table == nullptr) {
-    found_table = get_table_in_merge_tablelist(select, cached_table);
-  }
-  if (found_table == nullptr) {
-    return nullptr;
-  }
-  int field_index = find_ref_in_table(cached_table, ref);
-  if (field_index == -1 ||
-      found_table->field_translation == nullptr ||
-      found_table->field_translation_end - found_table->field_translation <= field_index) {
-    return nullptr;
-  }
-  itme_ref = &found_table->field_translation[field_index].item;
-  Item_view_ref *item = new (thd->pq_mem_root) Item_view_ref(&select->context, itme_ref, table_name, orig_table_name,
-                                 field_name, found_table);
+  
   if (item == nullptr || item->pq_copy_from(thd, select, this)) {
     return nullptr;
   }
+
   return item;
 }
 
+/**
+   Item_aggregate_ref wil be created from ref in setup_fields() afterwards, 
+   so clone ref for the item.
+*/
+Item *Item_aggregate_ref::pq_clone(class THD *thd, class SELECT_LEX *select) {
+  Item *item_ref = (*ref)->pq_clone(thd, select);
+  if (item_ref == nullptr) {
+    return nullptr;
+  }
+
+  return item_ref;
+}
 
 Item *Item_ref::pq_clone(class THD *thd, class SELECT_LEX *select) {
   /*
@@ -756,13 +781,13 @@ COPY_FUNC_ITEM(Item_func_not, ARG0)
 
 PQ_CLONE_DEF(Item_func_truth) {
     PQ_CLONE_ARGS
-    new_item = new Item_func_truth(POS(), item_list[0], truth_test);
+    new_item = new (thd->pq_mem_root) Item_func_truth(POS(), item_list[0], truth_test);
   }
 PQ_CLONE_RETURN
 
 PQ_CLONE_DEF(Item_extract) {
     PQ_CLONE_ARGS
-    new_item = new Item_extract(POS(), this->int_type, item_list[0]);
+    new_item = new (thd->pq_mem_root) Item_extract(POS(), this->int_type, item_list[0]);
   }
 PQ_CLONE_RETURN
 
@@ -907,7 +932,7 @@ PQ_CLONE_DEF(Item_func_in) {
       if (arg == nullptr) return nullptr;
       pt_item.value.push_back(arg);
     }
-    new_item = new Item_func_in(POS(), &pt_item, negated);
+    new_item = new (thd->pq_mem_root) Item_func_in(POS(), &pt_item, negated);
   }
 PQ_CLONE_RETURN
 
@@ -1110,7 +1135,7 @@ PQ_CLONE_DEF(Item_func_json_quote) {
     PT_item_list pt_item_list;
     pt_item_list.value = item_list;
 
-    new_item = new Item_func_json_quote(POS(), &pt_item_list);
+    new_item = new (thd->pq_mem_root) Item_func_json_quote(POS(), &pt_item_list);
   }
 PQ_CLONE_RETURN
 
@@ -1644,21 +1669,13 @@ PQ_CLONE_DEF(Item_sum_xor) {
 PQ_CLONE_RETURN
 
 PQ_COPY_FROM_DEF(Item_sum_hybrid, Item_sum) {
-    if (orig_item != nullptr && orig_item->value != nullptr) {
-      value = dynamic_cast<Item_cache *>(orig_item->value->pq_clone(thd, select));
-      if (value == nullptr) return true;
-    }
-    if (orig_item != nullptr && orig_item->arg_cache != nullptr) {
-      arg_cache =
-          dynamic_cast<Item_cache *>(orig_item->arg_cache->pq_clone(thd, select));
-      if (arg_cache == nullptr) return true;
+    if (orig_item == nullptr) {
+      return true;
     }
 
-    if (orig_item == nullptr)
-      return true;
-      
     hybrid_type = orig_item->hybrid_type;
-    was_values = orig_item->m_nulls_first = orig_item->m_nulls_first;
+    was_values = orig_item->was_values;
+    m_nulls_first = orig_item->m_nulls_first;
     m_optimize = orig_item->m_optimize;
     m_want_first = orig_item->m_want_first;
     m_cnt = orig_item->m_cnt;

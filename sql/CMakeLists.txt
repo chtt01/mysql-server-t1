@@ -566,6 +566,7 @@ SET(SQL_SHARED_SOURCES
   ssl_acceptor_context.cc
   exchange.cc
   exchange_sort.cc
+  exchange_nosort.cc
   msg_queue.cc
 )
 
