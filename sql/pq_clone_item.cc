@@ -414,6 +414,9 @@ Item *Item_view_ref::pq_clone(class THD *thd, class SELECT_LEX *select) {
                                   field_name, found_table);
   } else {
     item_ref = new (thd->pq_mem_root) Item*();
+    if (item_ref == nullptr) return nullptr;
+    *item_ref = (*ref)->pq_clone(thd, select);
+    if (*item_ref == nullptr) return nullptr;
     item = new (thd->pq_mem_root) Item_view_ref(&select->context, item_ref, table_name, orig_table_name,
                                   field_name, cached_table);
   }
