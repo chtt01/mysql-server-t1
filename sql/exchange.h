@@ -34,23 +34,23 @@ class Exchange {
   };
 
   Exchange()
-      : m_nqueues(0),
+      : mqueue_handles(nullptr),
+        m_thd(nullptr),
+        m_table(nullptr),
+        m_nqueues(0),
         m_receiver(nullptr),
         m_ref_length(0),
-        m_stab_output(false),
-        mqueue_handles(nullptr),
-        m_thd(nullptr),
-        m_table(nullptr) {}
+        m_stab_output(false) {}
 
   Exchange(THD *thd, TABLE *table, uint32 workers, uint ref_length,
            bool stab_output = false)
-      : m_nqueues(workers),
+      : mqueue_handles(nullptr),
+        m_thd(thd),
+        m_table(table),
+        m_nqueues(workers),
         m_receiver(nullptr),
         m_ref_length(ref_length),
-        m_stab_output(stab_output),
-        mqueue_handles(nullptr),
-        m_thd(thd),
-        m_table(table) {}
+        m_stab_output(stab_output) {}
 
   virtual ~Exchange() {}
 
@@ -83,14 +83,16 @@ class Exchange {
 
   inline bool is_stable() { return m_stab_output; }
 
+ public:
+  MQueue_handle **mqueue_handles;
+  THD *m_thd;
+  TABLE *m_table;
+
  private:
   uint32 m_nqueues;
   MQ_event *m_receiver;
   uint m_ref_length;
   bool m_stab_output;
-  MQueue_handle **mqueue_handles;
-  THD *m_thd;
-  TABLE *m_table;
 };
 
 #endif  // EXCHAGE_H
