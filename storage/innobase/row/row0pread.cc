@@ -1267,6 +1267,7 @@ dberr_t Parallel_reader::Scan_ctx::create_ranges(const Scan_range &scan_range,
 
   auto block = block_get_s_latched(page_id, mtr, __LINE__);
 
+  page_no_t child_page_no = FIL_NULL;
   /* read_level requested should be less than the tree height. */
   ut_ad(m_config.m_read_level <
         btr_page_get_level(buf_block_get_frame(block), mtr) + 1);
@@ -1329,6 +1330,7 @@ dberr_t Parallel_reader::Scan_ctx::create_ranges(const Scan_range &scan_range,
     if (at_level > m_config.m_read_level) {
       auto page_no = btr_node_ptr_get_child_page_no(rec, offsets);
 
+      child_page_no = page_no;
       if (depth < split_level) {
         /* Need to create a range starting at a lower level in the tree. */
         create_ranges(scan_range, page_no, depth + 1, split_level, ranges, mtr);
@@ -1384,7 +1386,11 @@ dberr_t Parallel_reader::Scan_ctx::create_ranges(const Scan_range &scan_range,
 
     page_cur_move_to_next(&page_cursor);
   }
-
+  
+  if (ranges.size() == 1 && depth == split_level && !at_leaf && child_page_no != FIL_NULL) {
+    ranges.clear();
+    create_ranges(scan_range, child_page_no, depth + 1, split_level + 1, ranges, mtr);
+  }
   savepoints.push_back(savepoint);
 
   for (auto &savepoint : savepoints) {
