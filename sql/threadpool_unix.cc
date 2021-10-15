@@ -735,18 +735,7 @@ static connection_t * listener(worker_thread_t *current_thread,
      Q2: If queue is not empty, how many workers to wake?
      
      Solution:
-     We generally try to keep one thread per group active (threads handling 
-     queries   are considered active, unless they stuck in inside some "wait")
-     Thus, we will wake only one worker, and only if there is not active 
-     threads currently,and listener is not going to handle a query. When we 
-     don't wake, we hope that  currently active  threads will finish fast and 
-     handle the queue. If this does  not happen, timer thread will detect stall
-     and wake a worker.
-     
-     NOTE: Currently nothing is done to detect or prevent long queuing times. 
-     A solutionc for the future would be to give up "one active thread per 
-     group" principle, if events stay  in the queue for too long, and just wake 
-     more workers.
+     We will wake up as many workers as possible and conform to threadpool_toobusy.
     */
     
     bool listener_picks_event= !threadpool_dedicated_listener &&
@@ -772,25 +761,16 @@ static connection_t * listener(worker_thread_t *current_thread,
         queue_push(thread_group, c);
       }
     }
-    
-    if (listener_picks_event)
+
+    int workers_can_afford = (int)threadpool_toobusy -
+                             thread_group->active_thread_count - thread_group->waiting_thread_count - (listener_picks_event ? 1 : 0);
+
+    if (workers_can_afford <= 0 && !listener_picks_event && thread_group->active_thread_count == 0)
     {
-      /* Handle the first event. */
-      retval= (connection_t *)native_event_get_userdata(&ev[0]);
-      TP_INCREMENT_GROUP_COUNTER(thread_group, dequeues[LISTENER]);
-      mysql_mutex_unlock(&thread_group->mutex);
-      break;
+      workers_can_afford = 1;
     }
 
-    int workers_in_need = (int)threadpool_oversubscribe -
-      thread_group->active_thread_count - thread_group->waiting_thread_count;
-
-    if (workers_in_need <= 0 && thread_group->active_thread_count == 0)
-    {
-      workers_in_need = 1;
-    }
-
-    workers_in_need = workers_in_need > cnt ? cnt : workers_in_need;
+    int workers_in_need = std::min(workers_can_afford, listener_picks_event ? (cnt - 1) : cnt);
 
     for (int i = 0; i < workers_in_need; i++)
     {
@@ -803,6 +783,15 @@ static connection_t * listener(worker_thread_t *current_thread,
         */ 
         create_worker(thread_group, false);
       }
+    }
+
+    if (listener_picks_event)
+    {
+      /* Handle the first event. */
+      retval= (connection_t *)native_event_get_userdata(&ev[0]);
+      TP_INCREMENT_GROUP_COUNTER(thread_group, dequeues[LISTENER]);
+      mysql_mutex_unlock(&thread_group->mutex);
+      break;
     }
 
     mysql_mutex_unlock(&thread_group->mutex);

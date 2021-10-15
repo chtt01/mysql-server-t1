@@ -8,12 +8,12 @@ connect(conn2,127.0.0.1,root);
 connection conn1;
 --let $conn1_id = `SELECT connection_id()`
 SEND SELECT benchmark(9999999999, md5('very long command 1'));
-
 --sleep 1
 
 connection conn2;
 --let $conn2_id = `SELECT connection_id()`
 SEND SELECT benchmark(9999999999, md5('very long command 2'));
+--sleep 1
 
 # Test that new connection cannot be established
 --disable_abort_on_error
@@ -37,9 +37,6 @@ SELECT SUM(IS_STALLED) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
 SELECT COUNT(*) FROM INFORMATION_SCHEMA.THREAD_POOL_QUEUES;
 # I_S.THREAD_POOL_STATS
 SELECT SUM(THREAD_CREATIONS_DUE_TO_STALL) FROM INFORMATION_SCHEMA.THREAD_POOL_STATS;
-SELECT SUM(WAKES_DUE_TO_STALL) FROM INFORMATION_SCHEMA.THREAD_POOL_STATS;
-SELECT SUM(THROTTLES) FROM INFORMATION_SCHEMA.THREAD_POOL_STATS;
-SELECT SUM(STALLS) FROM INFORMATION_SCHEMA.THREAD_POOL_STATS;
 
 --disable_query_log
 --eval KILL QUERY $conn1_id

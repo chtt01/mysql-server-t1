@@ -35,7 +35,7 @@ extern uint threadpool_stall_limit;  /* time interval in 10 ms units for stall c
 extern uint threadpool_max_threads;  /* Maximum threads in pool */
 extern uint threadpool_oversubscribe;  /* Maximum active threads in group */
 extern uint threadpool_toobusy;  /* Maximum active and waiting threads in group */
-extern uint threadpool_dedicated_listener;
+extern my_bool threadpool_dedicated_listener;
 
 /* Possible values for thread_pool_high_prio_mode */
 extern const char *threadpool_high_prio_mode_names[];

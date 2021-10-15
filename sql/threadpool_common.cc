@@ -37,7 +37,7 @@ uint threadpool_stall_limit;
 uint threadpool_max_threads;
 uint threadpool_oversubscribe;
 uint threadpool_toobusy;
-uint threadpool_dedicated_listener;
+my_bool threadpool_dedicated_listener;
 
 /* Stats */
 TP_STATISTICS tp_stats;
