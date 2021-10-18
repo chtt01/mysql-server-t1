@@ -1,0 +1,56 @@
+# Stop DB server which was created by MTR default
+# Starting up server
+# restart: --admin-port=ADMIN_PORT --admin-address=127.0.0.1
+CALL mtr.add_suppression("Threadpool could not create additional thread to handle queries");
+CALL mtr.add_suppression("Too many connections");
+SELECT CURRENT_USER();
+CURRENT_USER()
+root@localhost
+# -- Success: more than --max_connections normal connections not possible
+SELECT benchmark(9999999999, md5('very long command 1'));
+SELECT benchmark(9999999999, md5('very long command 1'));
+SELECT benchmark(9999999999, md5('very long command 1'));
+SELECT benchmark(9999999999, md5('very long command 1'));
+SELECT benchmark(9999999999, md5('very long command 1'));
+SELECT CURRENT_USER();
+CURRENT_USER()
+root@localhost
+SELECT COUNT(Id) FROM INFORMATION_SCHEMA.processlist where Info like 'SELECT benchmark(9999999999, md5(\'very long command%';
+COUNT(Id)
+2
+SELECT CURRENT_USER();
+CURRENT_USER()
+root@localhost
+SELECT COUNT(Id) FROM INFORMATION_SCHEMA.processlist where Info like 'SELECT benchmark(9999999999, md5(\'very long command%';
+COUNT(Id)
+2
+KILL QUERY 9;
+SELECT COUNT(Id) FROM INFORMATION_SCHEMA.processlist where Info like 'SELECT benchmark(9999999999, md5(\'very long command%';
+COUNT(Id)
+2
+KILL QUERY 10;
+SELECT COUNT(Id) FROM INFORMATION_SCHEMA.processlist where Info like 'SELECT benchmark(9999999999, md5(\'very long command%';
+COUNT(Id)
+2
+KILL QUERY 11;
+SELECT COUNT(Id) FROM INFORMATION_SCHEMA.processlist where Info like 'SELECT benchmark(9999999999, md5(\'very long command%';
+COUNT(Id)
+2
+KILL QUERY 12;
+SELECT COUNT(Id) FROM INFORMATION_SCHEMA.processlist where Info like 'SELECT benchmark(9999999999, md5(\'very long command%';
+COUNT(Id)
+1
+KILL QUERY 13;
+SELECT COUNT(Id) FROM INFORMATION_SCHEMA.processlist where Info like 'SELECT benchmark(9999999999, md5(\'very long command%';
+COUNT(Id)
+0
+benchmark(9999999999, md5('very long command 1'))
+0
+benchmark(9999999999, md5('very long command 1'))
+0
+benchmark(9999999999, md5('very long command 1'))
+0
+benchmark(9999999999, md5('very long command 1'))
+0
+benchmark(9999999999, md5('very long command 1'))
+0

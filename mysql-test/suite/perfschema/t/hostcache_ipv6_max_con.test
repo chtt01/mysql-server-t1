@@ -194,6 +194,10 @@ select current_user();
 # See comments in hostcache_ipv4_max_con.test
 
 --disable_query_log
+CALL mtr.add_suppression("Too many connections");
+--enable_query_log
+
+--disable_query_log
 --error ER_CON_COUNT_ERROR, 9999
 connect (con5c,"::1",quota,,test,$MASTER_MYPORT,);
 --enable_query_log

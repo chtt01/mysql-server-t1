@@ -1,0 +1,59 @@
+# Start with thread_handling=pool-of-threads
+
+--source suite/thread_pool/include/have_pool_of_threads.inc
+
+# Calculate value for admin port
+--let $PORT_OFFSET = 1
+--expr $ADMIN_PORT = $MASTER_MYPORT + $PORT_OFFSET
+
+--let $restart_parameters=restart:--admin-port=$ADMIN_PORT --admin-address=127.0.0.1
+--replace_result $ADMIN_PORT ADMIN_PORT
+--source include/restart_mysqld.inc
+
+connect(conn1,127.0.0.1,root);
+connect(conn2,127.0.0.1,root);
+
+connection conn1;
+--let $conn1_id = `SELECT connection_id()`
+SEND SELECT benchmark(9999999999, md5('very long command 1'));
+--sleep 1
+
+connection conn2;
+--let $conn2_id = `SELECT connection_id()`
+SEND SELECT benchmark(9999999999, md5('very long command 2'));
+--sleep 1
+
+# Test that new connection cannot be established
+--disable_abort_on_error
+--echo You should see a Lost connection message
+connect(conn3,127.0.0.1,root);
+--enable_abort_on_error
+
+connect(extracon,127.0.0.1,root,,,$ADMIN_PORT);
+connection extracon;
+--let $conn_id_number=`SELECT COUNT(ID) FROM information_schema.processlist WHERE USER="unauthenticated user" AND HOST="connecting host" AND COMMAND="Connect"`
+--echo Found $conn_id_number stuck connections
+# Test that under this circumstance, information offered by information schema is as expected
+# I_S.THREAD_POOL_GROUPS
+SELECT SUM(CONNECTIONS) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(ACTIVE_THREADS) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(STANDBY_THREADS) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(QUEUE_LENGTH) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(HAS_LISTENER) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(IS_STALLED) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+# I_S.THREAD_POOL_QUEUES
+SELECT COUNT(*) FROM INFORMATION_SCHEMA.THREAD_POOL_QUEUES;
+# I_S.THREAD_POOL_STATS
+SELECT SUM(THREAD_CREATIONS_DUE_TO_STALL) FROM INFORMATION_SCHEMA.THREAD_POOL_STATS;
+
+--disable_query_log
+--eval KILL QUERY $conn1_id
+--eval KILL QUERY $conn2_id
+--enable_query_log
+
+--sleep 1
+
+connection default;
+disconnect conn1;
+disconnect conn2;
+disconnect extracon;

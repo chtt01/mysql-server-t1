@@ -1,0 +1,74 @@
+# Start with thread_handling=pool-of-threads
+
+--source suite/thread_pool/include/have_pool_of_threads.inc
+
+# Calculate value for admin port
+--let $PORT_OFFSET = 1
+--expr $ADMIN_PORT = $MASTER_MYPORT + $PORT_OFFSET
+
+--let $restart_parameters=restart:--admin-port=$ADMIN_PORT --admin-address=127.0.0.1
+--replace_result $ADMIN_PORT ADMIN_PORT
+--source include/restart_mysqld.inc
+
+# Test that in certain case the listener won't process the only io event it just polled, when too busy condition is already met.
+
+connect(extracon,127.0.0.1,root,,,$ADMIN_PORT);
+connect(conn1,127.0.0.1,root);
+connect(conn2,127.0.0.1,root);
+connect(conn3,127.0.0.1,root);
+
+connection conn1;
+--let $conn1_id = `SELECT connection_id()`
+
+connection conn2;
+--let $conn2_id = `SELECT connection_id()`
+
+connection conn3;
+--let $conn3_id = `SELECT connection_id()`
+
+connection conn1;
+SEND SELECT benchmark(9999999999, md5('very long command 1'));
+
+--sleep 1
+connection conn2;
+SEND SELECT benchmark(9999999999, md5('very long command 2'));
+
+--sleep 1
+
+# The connect will timeout, but an io_event was put to low priority queue successfully.
+--disable_abort_on_error
+--echo You should see a Lost connection message
+connect(conn4,127.0.0.1,root);
+--enable_abort_on_error
+
+--sleep 1
+connection conn3;
+SEND SELECT 1;
+
+# The listener resumes and puts the the polled io_event to low priority queue, which make the queue length 2.
+--sleep 1
+connection extracon;
+--let queue_length=`SELECT QUEUE_LENGTH FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS`
+--echo queue_length $queue_length
+# Test that under this circumstance, information offered by information schema is as expected
+# I_S.THREAD_POOL_GROUPS
+SELECT SUM(CONNECTIONS) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(ACTIVE_THREADS) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(STANDBY_THREADS) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(HAS_LISTENER) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(IS_STALLED) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+# I_S.THREAD_POOL_QUEUES
+SELECT COUNT(*) FROM INFORMATION_SCHEMA.THREAD_POOL_QUEUES;
+
+# Clean up
+connection extracon;
+--disable_query_log
+eval KILL QUERY $conn1_id;
+eval KILL QUERY $conn2_id;
+--enable_query_log
+
+connection default;
+disconnect conn1;
+disconnect conn2;
+disconnect conn3;
+disconnect extracon;

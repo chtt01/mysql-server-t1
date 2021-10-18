@@ -167,6 +167,7 @@
 #include "sql_string.h"
 #include "thr_lock.h"
 #include "violite.h"
+#include "threadpool.h"
 
 #ifdef WITH_LOCK_ORDER
 #include "sql/debug_lock_order.h"
@@ -1186,7 +1187,8 @@ bool do_command(THD *thd) {
     number of seconds has passed.
   */
   net = thd->get_protocol_classic()->get_net();
-  my_net_set_read_timeout(net, thd->variables.net_wait_timeout);
+  if (!thd->skip_wait_timeout)
+    my_net_set_read_timeout(net, thd->get_wait_timeout());
   net_new_transaction(net);
 
   /*
@@ -1979,18 +1981,24 @@ bool dispatch_command(THD *thd, const COM_DATA *com_data,
       thd->get_stmt_da()->disable_status();  // Don't send anything back
       error = true;                          // End server
       break;
-    case COM_BINLOG_DUMP_GTID:
+    case COM_BINLOG_DUMP_GTID: {
+      tp_scheduler_event_begin(thd);
       // TODO: access of protocol_classic should be removed
       error = com_binlog_dump_gtid(
           thd, (char *)thd->get_protocol_classic()->get_raw_packet(),
           thd->get_protocol_classic()->get_packet_length());
-      break;
-    case COM_BINLOG_DUMP:
+      tp_scheduler_event_end(thd);      
+    }
+    break;
+    case COM_BINLOG_DUMP: {
+      tp_scheduler_event_begin(thd);
       // TODO: access of protocol_classic should be removed
       error = com_binlog_dump(
           thd, (char *)thd->get_protocol_classic()->get_raw_packet(),
           thd->get_protocol_classic()->get_packet_length());
-      break;
+      tp_scheduler_event_end(thd);      
+    }
+    break;
     case COM_REFRESH: {
       int not_used;
       push_deprecated_warn(thd, "COM_REFRESH", "FLUSH statement");

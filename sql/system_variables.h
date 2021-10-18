@@ -325,6 +325,10 @@ struct System_variables {
   char *track_sysvars_ptr;
   bool session_track_schema;
   bool session_track_state_change;
+
+  uint threadpool_high_prio_tickets;
+  ulong threadpool_high_prio_mode;
+
   ulong session_track_transaction_info;
 
   /*

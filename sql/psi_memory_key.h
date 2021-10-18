@@ -169,4 +169,7 @@ extern PSI_memory_key key_memory_user_var_entry_value;
 extern PSI_memory_key key_memory_sp_cache;
 extern PSI_memory_key key_memory_write_set_extraction;
 
+// Percona PSI memory keys
+extern PSI_memory_key key_memory_thread_pool_connection;
+
 #endif  // PSI_MEMORY_KEY_INCLUDED

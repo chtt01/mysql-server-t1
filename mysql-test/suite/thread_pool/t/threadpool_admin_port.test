@@ -1,0 +1,136 @@
+# Start with thread_handling=pool-of-threads
+--source suite/thread_pool/include/have_pool_of_threads.inc
+--echo # Stop DB server which was created by MTR default
+
+--let $MYSQLD_DATADIR= `SELECT @@datadir`
+
+--source include/shutdown_mysqld.inc
+
+# Calculate value for admin port
+--let $PORT_OFFSET = 1
+--expr $ADMIN_PORT = $MASTER_MYPORT + $PORT_OFFSET
+
+--echo # Starting up server
+--force-cpdir $MYSQLD_DATADIR $MYSQL_TMP_DIR/newdd
+--replace_result $ADMIN_PORT ADMIN_PORT
+--let $restart_parameters=restart: --admin-port=$ADMIN_PORT --admin-address=127.0.0.1
+--source include/start_mysqld.inc
+--source suite/thread_pool/include/have_pool_of_threads.inc
+
+CALL mtr.add_suppression("Threadpool could not create additional thread to handle queries");
+CALL mtr.add_suppression("Too many connections");
+
+connection default;
+SELECT CURRENT_USER();
+
+connect(conn0,127.0.0.1,root,,,);
+connect(conn1,127.0.0.1,root,,,);
+connect(conn2,127.0.0.1,root,,,);
+connect(conn3,127.0.0.1,root,,,);
+connect(conn4,127.0.0.1,root,,,);
+
+# up to max_connections
+--disable_abort_on_error
+--disable_result_log
+--disable_query_log
+connect(conn5,127.0.0.1,root,,,);
+--enable_query_log
+--enable_result_log
+--enable_abort_on_error
+--let $error = $mysql_errno
+if (!$error)
+{
+  --echo # -- Error: managed to establish more than --max_connections connections
+}
+if ($error)
+{
+  --echo # -- Success: more than --max_connections normal connections not possible
+}
+
+connection conn0;
+--let $conn0_id = `SELECT connection_id()`
+connection conn1;
+--let $conn1_id = `SELECT connection_id()`
+connection conn2;
+--let $conn2_id = `SELECT connection_id()`
+connection conn3;
+--let $conn3_id = `SELECT connection_id()`
+connection conn4;
+--let $conn4_id = `SELECT connection_id()`
+
+# long queries will be executed until thread_pool_max_threads is reached.
+connection conn0;
+SEND SELECT benchmark(9999999999, md5('very long command 1'));
+sleep 1;
+
+connection conn1;
+SEND SELECT benchmark(9999999999, md5('very long command 1'));
+sleep 1;
+
+connection conn2;
+SEND SELECT benchmark(9999999999, md5('very long command 1'));
+sleep 1;
+
+connection conn3;
+SEND SELECT benchmark(9999999999, md5('very long command 1'));
+sleep 1;
+
+connection conn4;
+SEND SELECT benchmark(9999999999, md5('very long command 1'));
+sleep 1;
+
+# admin port is not restricted by max_connections
+connect(admin_tcp_con,127.0.0.1,root,,,$ADMIN_PORT,,TCP);
+connection admin_tcp_con;
+SELECT CURRENT_USER();
+# up to max(2,thread_pool_max_threads)
+SELECT COUNT(Id) FROM INFORMATION_SCHEMA.processlist where Info like 'SELECT benchmark(9999999999, md5(\'very long command%';
+
+# admin port is not restricted by max_connections
+connect(admin_local_con,localhost,root,,,$ADMIN_PORT,,TCP);
+connection admin_local_con;
+SELECT CURRENT_USER();
+SELECT COUNT(Id) FROM INFORMATION_SCHEMA.processlist where Info like 'SELECT benchmark(9999999999, md5(\'very long command%';
+
+# to gracefully shutdown
+# kill long running queries
+--eval KILL QUERY $conn0_id
+# sleep 1 is aim to let pending task in task queue to be picked
+--sleep 1
+SELECT COUNT(Id) FROM INFORMATION_SCHEMA.processlist where Info like 'SELECT benchmark(9999999999, md5(\'very long command%';
+
+--eval KILL QUERY $conn1_id
+--sleep 1
+SELECT COUNT(Id) FROM INFORMATION_SCHEMA.processlist where Info like 'SELECT benchmark(9999999999, md5(\'very long command%';
+
+--eval KILL QUERY $conn2_id
+--sleep 1
+SELECT COUNT(Id) FROM INFORMATION_SCHEMA.processlist where Info like 'SELECT benchmark(9999999999, md5(\'very long command%';
+
+--eval KILL QUERY $conn3_id
+--sleep 1
+SELECT COUNT(Id) FROM INFORMATION_SCHEMA.processlist where Info like 'SELECT benchmark(9999999999, md5(\'very long command%';
+
+--eval KILL QUERY $conn4_id
+--sleep 1
+SELECT COUNT(Id) FROM INFORMATION_SCHEMA.processlist where Info like 'SELECT benchmark(9999999999, md5(\'very long command%';
+
+# SEND should be paired with REAP
+connection conn0;
+--reap
+connection conn1;
+--reap
+connection conn2;
+--reap
+connection conn3;
+--reap
+connection conn4;
+--reap
+
+--disconnect conn0
+--disconnect conn1
+--disconnect conn2
+--disconnect conn3
+--disconnect conn4
+--disconnect admin_tcp_con
+--disconnect admin_local_con

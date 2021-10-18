@@ -1,0 +1,51 @@
+# Start with thread_handling=pool-of-threads
+--source suite/thread_pool/include/have_pool_of_threads.inc
+
+# Test that each thread group will have only one active thread if neither any stall or wait happens, no matter what's the number of cores available underneath.
+# Here thread_pool_stall_limit is set to a large value, to make those "very long command" treated as not stalled command. 
+
+# Calculate value for admin port
+--let $PORT_OFFSET = 1
+--expr $ADMIN_PORT = $MASTER_MYPORT + $PORT_OFFSET
+
+--let $restart_parameters=restart:--admin-port=$ADMIN_PORT --admin-address=127.0.0.1
+--replace_result $ADMIN_PORT ADMIN_PORT
+--source include/restart_mysqld.inc
+
+connect(extracon,127.0.0.1,root,,,$ADMIN_PORT);
+connect(conn1,127.0.0.1,root,,,$MASTER_MYPORT);
+connect(conn2,127.0.0.1,root,,,$MASTER_MYPORT);
+
+connection conn1;
+--let $conn1_id = `SELECT connection_id()`
+
+connection conn2;
+--let $conn2_id = `SELECT connection_id()`
+
+connection conn1;
+SEND SELECT benchmark(9999999999, md5('very long command 1'));
+
+connection conn2;
+SEND SELECT benchmark(9999999999, md5('very long command 2'));
+
+# Test that only one command is being executed
+connection extracon;
+SELECT COUNT(Id) FROM INFORMATION_SCHEMA.processlist where Info like 'SELECT benchmark(9999999999, md5(\'very long command%';
+# Test that under this circumstance, information offered by information schema is as expected
+# I_S.THREAD_POOL_GROUPS
+SELECT SUM(CONNECTIONS) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(ACTIVE_THREADS) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(STANDBY_THREADS) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(QUEUE_LENGTH) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(HAS_LISTENER) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(IS_STALLED) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+# I_S.THREAD_POOL_QUEUES
+SELECT COUNT(*) FROM INFORMATION_SCHEMA.THREAD_POOL_QUEUES;
+# I_S.THREAD_POOL_STATS
+SELECT SUM(THREAD_CREATIONS_DUE_TO_STALL) FROM INFORMATION_SCHEMA.THREAD_POOL_STATS;
+
+# Clean up
+--disable_query_log
+eval KILL QUERY $conn1_id;
+eval KILL QUERY $conn2_id;
+--enable_query_log

@@ -1,0 +1,46 @@
+# Start with thread_handling=pool-of-threads
+
+--source suite/thread_pool/include/have_pool_of_threads.inc
+
+# Test that the new incoming connectins are dispatched to thread groups properly
+
+# Set up $total_connection_number new connections
+--let $counter=1 # 1 for default connection
+--let $total_connection_number=100
+while ($counter < $total_connection_number)
+{
+    connect(conn$counter,127.0.0.1,root);
+    connection conn$counter;
+    --inc $counter
+}
+
+connection default;
+
+# Get connection number for each thread group. Evaluate its deviation from average is acceptable.
+--let $counter=0
+--let $connection_sum=0
+--let $average_connection_numer=`SELECT CEIL($total_connection_number / $MASTER_THREAD_POOL_SIZE)`
+--let $deviation_threshold=`SELECT CEIL($average_connection_numer / 2)`
+
+while ($counter<$MASTER_THREAD_POOL_SIZE)
+{
+    --let group_connection_number=`SELECT CONNECTIONS FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS WHERE GROUP_ID=$counter`
+    --inc $counter
+    --let $connection_sum=`SELECT $connection_sum + $group_connection_number`
+    --let $deviation=`SELECT ABS($group_connection_number - $average_connection_numer)`
+    --let $reject=0
+    if($deviation > $deviation_threshold)
+    {
+        --let $reject=1
+        --echo group $counter deviation is rejected. $deviation exceeds threshold $deviation_threshold
+    }
+    if($reject == 0)
+    {
+        --echo group $counter deviation is accepted
+    }
+}
+
+if($connection_sum != $total_connection_number)
+{
+    --echo connection number mismatch: expected=$total_connection_number, actual=$connection_sum
+}

@@ -1,0 +1,41 @@
+CREATE DATABASE db1;
+CREATE TABLE db1.t1 (
+c1 int NOT NULL,
+c2 int NOT NULL,
+PRIMARY KEY (c1)
+);
+INSERT INTO db1.t1 (c1,c2) VALUES (1,11);
+INSERT INTO db1.t1 (c1,c2) VALUES (2,22);
+INSERT INTO db1.t1 (c1,c2) VALUES (3,33);
+START TRANSACTION;
+SELECT * FROM db1.t1 WHERE c1=2 FOR UPDATE;
+c1	c2
+2	22
+START TRANSACTION;
+SELECT * FROM db1.t1 WHERE c1=2 LOCK IN SHARE MODE;
+# Shutdown the server
+# Start the server
+# restart:--admin-port=ADMIN_PORT --admin-address=127.0.0.1
+SELECT benchmark(9999999999, md5('very long command 1'));
+SELECT benchmark(9999999999, md5('very long command 2'));
+SELECT CURRENT_USER();
+CURRENT_USER()
+root@localhost
+# Shutdown the server
+# Start the server
+# restart:--admin-port=ADMIN_PORT --admin-address=127.0.0.1
+SELECT * FROM db1.t1 WHERE c1=1;
+c1	c2
+1	11
+SELECT * FROM db1.t1 WHERE c1=2;
+c1	c2
+2	22
+SELECT CURRENT_USER();
+CURRENT_USER()
+root@localhost
+# Shutdown the server
+# Start the server
+# restart:--admin-port=ADMIN_PORT --admin-address=127.0.0.1
+# Cleanup
+DROP TABLE db1.t1;
+DROP DATABASE db1;

@@ -1,0 +1,99 @@
+--source suite/thread_pool/include/have_pool_of_threads.inc
+--source include/have_debug.inc
+
+# Calculate value for admin port
+--let $PORT_OFFSET = 1
+--expr $ADMIN_PORT = $MASTER_MYPORT + $PORT_OFFSET
+
+--let $restart_parameters=restart:--admin-port=$ADMIN_PORT --admin-address=127.0.0.1
+--replace_result $ADMIN_PORT ADMIN_PORT
+--source include/restart_mysqld.inc
+
+# Test that existed connection may or may not be able to execute command, depending on the timing of io events's arrival
+
+connect(extracon,127.0.0.1,root,,,$ADMIN_PORT);
+connect(conn1,127.0.0.1,root);
+connect(conn2,127.0.0.1,root);
+connect(conn3,127.0.0.1,root);
+connect(conn4,127.0.0.1,root);
+
+connection conn1;
+--let $conn1_id = `SELECT connection_id()`
+SEND SELECT benchmark(9999999999, md5('very long command 1'));
+
+--sleep 1
+
+connection conn2;
+--let $conn2_id = `SELECT connection_id()`
+SEND SELECT benchmark(9999999999, md5('very long command 2'));
+
+--sleep 1
+
+# Test that listener polls 1 queue_event and process it. Verify it 2 times.
+--let $counter=0
+while ($counter<2)
+{
+    connection conn3;
+    SEND SELECT 1;
+    --sleep 1
+
+    # ASSERT queue length = 0
+    connection extracon;
+    --let queue_length=`SELECT QUEUE_LENGTH FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS`
+    --echo queue_length $queue_length
+
+    connection conn3;
+    REAP;
+
+    --inc $counter
+}
+
+# Execute this command in thread pool handler, so that the next command will be first of the two required io events.
+SET GLOBAL debug="+d,threadpool_io_poll_wait_at_least_2_events";
+--sleep 1
+
+# Test that listener polls 2 queue_events and process one of them, leaving the other in low priority queue
+
+# First of the 2 required io events, listener will execute another io_poll_wait
+connection conn3;
+SEND SELECT 1;
+
+# Disable threadpool_io_poll_wait_at_least_2_events
+connection extracon;
+SET GLOBAL debug="-d,threadpool_io_poll_wait_at_least_2_events";
+--sleep 1
+
+# Second of the two required io events, listener will deal with the 2 io_events, either process one of them or put both to queue.
+connection conn4;
+SEND SELECT 1;
+--sleep 1
+
+# ASSERT queue length = 1
+connection extracon;
+--let queue_length=`SELECT QUEUE_LENGTH FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS`
+--echo queue_length $queue_length
+# Test that under this circumstance, information offered by information schema is as expected
+# I_S.THREAD_POOL_GROUPS
+SELECT SUM(CONNECTIONS) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(ACTIVE_THREADS) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(STANDBY_THREADS) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(QUEUE_LENGTH) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(HAS_LISTENER) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(IS_STALLED) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+# I_S.THREAD_POOL_QUEUES
+SELECT COUNT(*) FROM INFORMATION_SCHEMA.THREAD_POOL_QUEUES;
+
+# Clean up
+--disable_query_log
+eval KILL QUERY $conn1_id;
+eval KILL QUERY $conn2_id;
+--enable_query_log
+
+--sleep 1
+
+connection default;
+disconnect conn1;
+disconnect conn2;
+disconnect conn3;
+disconnect conn4;
+disconnect extracon;

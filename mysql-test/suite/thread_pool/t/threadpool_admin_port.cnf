@@ -1,0 +1,12 @@
+!include include/default_my.cnf
+
+[mysqld.1]
+thread-handling=pool-of-threads
+thread_pool_size=1
+thread_pool_oversubscribe=3
+thread_pool_toobusy=3
+max_connections=5
+thread_pool_max_threads=2
+
+[client]
+connect-timeout=5

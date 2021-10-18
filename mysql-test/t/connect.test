@@ -128,6 +128,10 @@ SET GLOBAL max_connections = 3;
 SELECT COUNT(*) = 1 FROM information_schema.processlist
   WHERE user = 'event_scheduler' AND command = 'Daemon';
 
+--disable_query_log
+CALL mtr.add_suppression("Too many connections");
+--enable_query_log
+
 --echo
 --echo # -- Disconnecting default connection...
 --disconnect default

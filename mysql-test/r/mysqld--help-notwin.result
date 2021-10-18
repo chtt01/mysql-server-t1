@@ -469,6 +469,9 @@ The following options may be given as the first argument:
  --keyring-migration-destination.
  --keyring-migration-user=name 
  User to login to server.
+ --kill-idle-transaction=# 
+ If non-zero, number of seconds to wait before killing
+ idle connections that have open transactions
  -L, --language=name Client error messages in given language. May be given as
  a full path. Deprecated. Use --lc-messages-dir instead.
  --large-pages       Enable support for large pages
@@ -1354,7 +1357,8 @@ The following options may be given as the first argument:
  How many threads we should keep in a cache for reuse
  --thread-handling=name 
  Define threads usage for handling queries, one of
- one-thread-per-connection, no-threads, loaded-dynamically
+ one-thread-per-connection, no-threads, pool-of-threads,
+ loaded-dynamically
  --thread-stack=#    The stack size for each thread
  --tls-ciphersuites=name 
  --tls-version=name  TLS version, permitted values are TLSv1, TLSv1.1,
@@ -1521,6 +1525,7 @@ keyring-migration-host (No default value)
 keyring-migration-port 0
 keyring-migration-source (No default value)
 keyring-migration-user (No default value)
+kill-idle-transaction 0
 large-pages FALSE
 lc-messages en_US
 lc-time-names en_US

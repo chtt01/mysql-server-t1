@@ -1,0 +1,86 @@
+# Start with thread_handling=pool-of-threads
+
+--source suite/thread_pool/include/have_pool_of_threads.inc
+
+# initialize data
+CREATE DATABASE db1;
+CREATE TABLE db1.t1 (
+    c1 int NOT NULL,
+    c2 int NOT NULL,
+    PRIMARY KEY (c1)
+);
+INSERT INTO db1.t1 (c1,c2) VALUES (1,11);
+INSERT INTO db1.t1 (c1,c2) VALUES (2,22);
+INSERT INTO db1.t1 (c1,c2) VALUES (3,33);
+
+# Calculate value for admin port
+--let $PORT_OFFSET = 1
+--expr $ADMIN_PORT = $MASTER_MYPORT + $PORT_OFFSET
+
+--let $restart_parameters=restart:--admin-port=$ADMIN_PORT --admin-address=127.0.0.1
+--replace_result $ADMIN_PORT ADMIN_PORT
+--source include/restart_mysqld.inc
+
+connect(conn0,127.0.0.1,root,,db1);
+connect(conn1,127.0.0.1,root,,db1);
+connect(conn2,127.0.0.1,root,,db1);
+
+connection conn0;
+START TRANSACTION;
+SELECT * FROM db1.t1 WHERE c1=2 FOR UPDATE;
+--sleep 1
+
+connection conn1;
+START TRANSACTION;
+SEND SELECT * FROM db1.t1 WHERE c1=2 LOCK IN SHARE MODE;
+--sleep 1
+
+connection conn2;
+START TRANSACTION;
+SEND SELECT * FROM db1.t1 WHERE c1=2 LOCK IN SHARE MODE;
+--sleep 1
+
+# Test that new connection cannot be established
+--disable_abort_on_error
+--echo You should see a Lost connection message
+connect(conn3,127.0.0.1,root,,db1);
+--enable_abort_on_error
+
+connect(extracon,127.0.0.1,root,,,$ADMIN_PORT,);
+connection extracon;
+--let $conn_id_number=`SELECT COUNT(ID) FROM information_schema.processlist WHERE USER="unauthenticated user" AND HOST="connecting host" AND COMMAND="Connect"`
+--echo Found $conn_id_number stuck connections
+# Test that under this circumstance, information offered by information schema is as expected
+# I_S.THREAD_POOL_GROUPS
+SELECT SUM(CONNECTIONS) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(ACTIVE_THREADS) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(STANDBY_THREADS) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(QUEUE_LENGTH) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(HAS_LISTENER) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+SELECT SUM(IS_STALLED) FROM INFORMATION_SCHEMA.THREAD_POOL_GROUPS;
+# I_S.THREAD_POOL_QUEUES
+SELECT COUNT(*) FROM INFORMATION_SCHEMA.THREAD_POOL_QUEUES;
+# I_S.THREAD_POOL_WAITS
+SELECT COUNT FROM INFORMATION_SCHEMA.THREAD_POOL_WAITS WHERE REASON='Row_lock';
+
+connection conn0;
+ROLLBACK;
+
+connection conn1;
+REAP;
+ROLLBACK;
+
+connection conn2;
+REAP;
+ROLLBACK;
+
+connection extracon;
+--echo Clean up
+DROP TABLE db1.t1;
+DROP DATABASE db1;
+
+connection default;
+disconnect conn0;
+disconnect conn1;
+disconnect conn2;
+disconnect extracon;

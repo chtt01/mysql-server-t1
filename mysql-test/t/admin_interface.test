@@ -88,6 +88,10 @@ GRANT SUPER ON *.* TO u3;
 --connect(ordinary_tcp_con,localhost,root,,,,,TCP)
 SELECT CURRENT_USER();
 
+--disable_query_log
+CALL mtr.add_suppression("Too many connections");
+--enable_query_log
+
 --disconnect ordinary_tcp_con
 --source include/wait_until_disconnected.inc
 

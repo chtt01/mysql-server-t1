@@ -810,6 +810,8 @@ extern uint my_set_max_open_files(uint files);
 
 extern bool my_gethwaddr(uchar *to);
 
+#define my_microsecond_getsystime() (my_getsystime() / 10)
+
 #ifdef HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 

@@ -147,6 +147,10 @@ Database: information_schema
 | TABLESPACES                           |
 | TABLE_CONSTRAINTS                     |
 | TABLE_PRIVILEGES                      |
+| THREAD_POOL_GROUPS                    |
+| THREAD_POOL_QUEUES                    |
+| THREAD_POOL_STATS                     |
+| THREAD_POOL_WAITS                     |
 | TRIGGERS                              |
 | USER_PRIVILEGES                       |
 | VIEWS                                 |
@@ -225,6 +229,10 @@ Database: INFORMATION_SCHEMA
 | TABLESPACES                           |
 | TABLE_CONSTRAINTS                     |
 | TABLE_PRIVILEGES                      |
+| THREAD_POOL_GROUPS                    |
+| THREAD_POOL_QUEUES                    |
+| THREAD_POOL_STATS                     |
+| THREAD_POOL_WAITS                     |
 | TRIGGERS                              |
 | USER_PRIVILEGES                       |
 | VIEWS                                 |

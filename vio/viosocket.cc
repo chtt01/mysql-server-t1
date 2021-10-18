@@ -70,6 +70,29 @@
 
 #include "mysql/psi/mysql_socket.h"
 
+/* Network io wait callbacks  for threadpool */
+static void (*before_io_wait)(void) = nullptr;
+static void (*after_io_wait)(void) = nullptr;
+
+/* Wait callback macros (both performance schema and threadpool */
+#define START_SOCKET_WAIT(locker, state_ptr, sock, which, timeout) \
+  do {                                                             \
+    MYSQL_START_SOCKET_WAIT(locker, state_ptr, sock, which, 0);    \
+    if (timeout && before_io_wait) before_io_wait();               \
+  } while (0)
+
+#define END_SOCKET_WAIT(locker, timeout)           \
+  do {                                             \
+    MYSQL_END_SOCKET_WAIT(locker, 0);              \
+    if (timeout && after_io_wait) after_io_wait(); \
+  } while (0)
+
+void vio_set_wait_callback(void (*before_wait)(void),
+                           void (*after_wait)(void)) {
+  before_io_wait = before_wait;
+  after_io_wait = after_wait;
+}
+
 int vio_errno(Vio *vio MY_ATTRIBUTE((unused))) {
 /* These transport types are not Winsock based. */
 #ifdef _WIN32
@@ -242,6 +265,43 @@ size_t vio_write(Vio *vio, const uchar *buf, size_t size) {
   return ret;
 }
 
+#ifdef _WIN32
+static void CALLBACK cancel_io_apc(ULONG_PTR data) { CancelIo((HANDLE)data); }
+
+/*
+  Cancel IO on Windows.
+
+  On XP, issue CancelIo as asynchronous procedure call to the thread that
+  started IO. On Vista+, simpler cancelation is done with CancelIoEx.
+*/
+
+int cancel_io(HANDLE handle, DWORD thread_id) {
+  static BOOL(WINAPI *fp_CancelIoEx)(HANDLE, OVERLAPPED *);
+  static volatile int first_time = 1;
+  int rc;
+  HANDLE thread_handle;
+
+  if (first_time) {
+    /* Try to load CancelIoEx using GetProcAddress */
+    InterlockedCompareExchangePointer(
+        (volatile void *)&fp_CancelIoEx,
+        GetProcAddress(GetModuleHandle("kernel32"), "CancelIoEx"), nullptr);
+    first_time = 0;
+  }
+
+  if (fp_CancelIoEx) {
+    return fp_CancelIoEx(handle, nullptr) ? 0 : -1;
+  }
+
+  thread_handle = OpenThread(THREAD_SET_CONTEXT, FALSE, thread_id);
+  if (thread_handle) {
+    rc = QueueUserAPC(cancel_io_apc, thread_handle, (ULONG_PTR)handle);
+    CloseHandle(thread_handle);
+  }
+  return rc;
+}
+#endif
+
 // WL#4896: Not covered
 int vio_set_blocking(Vio *vio, bool status) {
   DBUG_TRACE;
@@ -258,7 +318,7 @@ int vio_set_blocking(Vio *vio, bool status) {
   {
     int flags;
 
-    if ((flags = fcntl(mysql_socket_getfd(vio->mysql_socket), F_GETFL, NULL)) <
+    if ((flags = fcntl(mysql_socket_getfd(vio->mysql_socket), F_GETFL, nullptr)) <
         0)
       return -1;
 
@@ -442,7 +502,7 @@ static void vio_wait_until_woken(Vio *vio) {
   if (vio->kq_fd != -1) {
     struct kevent kev;
 
-    EV_SET(&kev, WAKEUP_EVENT_ID, EVFILT_USER, 0, NOTE_TRIGGER, 0, NULL);
+    EV_SET(&kev, WAKEUP_EVENT_ID, EVFILT_USER, 0, NOTE_TRIGGER, 0, nullptr);
     int nev = kevent(vio->kq_fd, &kev, 1, nullptr, 0, nullptr);
     if (nev != -1) {
       while (vio->kevent_wakeup_flag.test_and_set()) {
@@ -453,17 +513,12 @@ static void vio_wait_until_woken(Vio *vio) {
 }
 #endif
 
-int vio_shutdown(Vio *vio) {
-  int r = 0;
+int vio_shutdown(Vio *vio, int how) {
   DBUG_TRACE;
 
-  if (vio->inactive == false) {
-    DBUG_ASSERT(vio->type == VIO_TYPE_TCPIP || vio->type == VIO_TYPE_SOCKET ||
-                vio->type == VIO_TYPE_SSL);
+  int r = vio_cancel(vio, how);
 
-    DBUG_ASSERT(mysql_socket_getfd(vio->mysql_socket) >= 0);
-    if (mysql_socket_shutdown(vio->mysql_socket, SHUT_RDWR)) r = -1;
-
+  if (!vio->inactive) {
 #ifdef USE_PPOLL_IN_VIO
     if (vio->thread_id != 0 && vio->poll_shutdown_flag.test_and_set()) {
       // Send signal to wake up from poll.
@@ -491,6 +546,26 @@ int vio_shutdown(Vio *vio) {
   vio->inactive = true;
   vio->mysql_socket = MYSQL_INVALID_SOCKET;
   return r;
+}
+
+int vio_cancel(Vio *vio, int how) {
+  int r = 0;
+  DBUG_ENTER("vio_cancel");
+
+  if (!vio->inactive) {
+    DBUG_ASSERT(vio->type == VIO_TYPE_TCPIP || vio->type == VIO_TYPE_SOCKET ||
+                vio->type == VIO_TYPE_SSL);
+
+    DBUG_ASSERT(mysql_socket_getfd(vio->mysql_socket) >= 0);
+    if (mysql_socket_shutdown(vio->mysql_socket, how)) r = -1;
+#ifdef _WIN32
+    /* Cancel possible IO in progress (shutdown does not do that on
+       Windows). */
+    (void)cancel_io((HANDLE)vio->mysql_socket, vio->thread_id);
+#endif
+  }
+
+  DBUG_RETURN(r);
 }
 
 #ifndef DBUG_OFF
@@ -811,8 +886,8 @@ int vio_io_wait(Vio *vio, enum enum_vio_io_event event, int timeout) {
       break;
   }
 
-  MYSQL_START_SOCKET_WAIT(locker, &state, vio->mysql_socket, PSI_SOCKET_SELECT,
-                          0);
+  START_SOCKET_WAIT(locker, &state, vio->mysql_socket, PSI_SOCKET_SELECT,
+                    timeout);
 
 #ifdef USE_PPOLL_IN_VIO
   // Check if shutdown is in progress, if so return -1
@@ -867,7 +942,7 @@ int vio_io_wait(Vio *vio, enum enum_vio_io_event event, int timeout) {
       break;
   }
 
-  MYSQL_END_SOCKET_WAIT(locker, 0);
+  END_SOCKET_WAIT(locker, timeout);
   return ret;
 }
 
@@ -910,17 +985,17 @@ int vio_io_wait(Vio *vio, enum enum_vio_io_event event, int timeout) {
       break;
   }
 
-  MYSQL_START_SOCKET_WAIT(locker, &state, vio->mysql_socket, PSI_SOCKET_SELECT,
-                          0);
+  START_SOCKET_WAIT(locker, &state, vio->mysql_socket, PSI_SOCKET_SELECT,
+                    timeout);
 
   /* The first argument is ignored on Windows. */
   do {
     ret = select((int)(fd + 1), &readfds, &writefds, &exceptfds,
-                 (timeout >= 0) ? &tm : NULL);
+                 (timeout >= 0) ? &tm : nullptr);
   } while (ret < 0 && vio_should_retry(vio) &&
            (retry_count++ < vio->retry_count));
 
-  MYSQL_END_SOCKET_WAIT(locker, 0);
+  END_SOCKET_WAIT(locker, timeout);
 
   /* Set error code to indicate a timeout error. */
   if (ret == 0) WSASetLastError(SOCKET_ETIMEDOUT);

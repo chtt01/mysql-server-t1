@@ -700,6 +700,7 @@ The documentation is based on the source files such as:
 #include "sql/tc_log.h"           // tc_log
 #include "sql/thd_raii.h"
 #include "sql/thr_malloc.h"
+#include "sql/threadpool.h"
 #include "sql/transaction.h"
 #include "sql/tztime.h"  // Time_zone
 #include "sql/xa.h"
@@ -1939,8 +1940,8 @@ class Set_kill_conn : public Do_THD_Impl {
     } else {
       killing_thd->killed = THD::KILL_CONNECTION;
 
-      MYSQL_CALLBACK(Connection_handler_manager::event_functions,
-                     post_kill_notification, (killing_thd));
+      MYSQL_CALLBACK(killing_thd->scheduler, post_kill_notification,
+                     (killing_thd));
     }
 
     if (killing_thd->is_killable && killing_thd->kill_immunizer == nullptr) {
@@ -6245,6 +6246,8 @@ int mysqld_main(int argc, char **argv)
   //  Init error log subsystem. This does not actually open the log yet.
   if (init_error_log()) unireg_abort(MYSQLD_ABORT_EXIT);
   if (!opt_validate_config) adjust_related_options(&requested_open_files);
+  // moved signal initialization here so that PFS thread inherited signal mask
+  my_init_signals();
 
 #ifdef WITH_PERFSCHEMA_STORAGE_ENGINE
   if (heo_error == 0) {
@@ -6499,8 +6502,6 @@ int mysqld_main(int argc, char **argv)
     setup_error_log();
     unireg_abort(MYSQLD_ABORT_EXIT);  // Will do exit
   }
-
-  my_init_signals();
 
   size_t guardize = 0;
 #ifndef _WIN32
@@ -8594,6 +8595,16 @@ static int show_ssl_get_cipher_list(THD *thd, SHOW_VAR *var, char *buff) {
   return 0;
 }
 
+#ifdef HAVE_POOL_OF_THREADS
+static int show_threadpool_idle_threads(THD *thd MY_ATTRIBUTE((unused)),
+                                        SHOW_VAR *var, char *buff) {
+  var->type = SHOW_INT;
+  var->value = buff;
+  *(int *)buff = tp_get_idle_thread_count();
+  return 0;
+}
+#endif
+
 static int show_slave_open_temp_tables(THD *, SHOW_VAR *var, char *buf) {
   var->type = SHOW_INT;
   var->value = buf;
@@ -8933,6 +8944,12 @@ SHOW_VAR status_vars[] = {
      SHOW_SCOPE_GLOBAL},
     {"Tc_log_page_waits", (char *)&tc_log_page_waits, SHOW_LONG,
      SHOW_SCOPE_GLOBAL},
+#ifdef HAVE_POOL_OF_THREADS
+    {"Threadpool_idle_threads", (char *)&show_threadpool_idle_threads,
+     SHOW_FUNC, SHOW_SCOPE_GLOBAL},
+    {"Threadpool_threads", (char *)&tp_stats.num_worker_threads, SHOW_INT,
+     SHOW_SCOPE_GLOBAL},
+#endif
     {"Threads_cached",
      (char *)&Per_thread_connection_handler::blocked_pthread_count,
      SHOW_LONG_NOFLUSH, SHOW_SCOPE_GLOBAL},

@@ -41,6 +41,9 @@ SET GLOBAL max_connections= 3;
 connect (con1, localhost, root,,mysql);
 connect (con2, localhost, root,,mysql);
 connect (con3, localhost, root,,mysql);
+--disable_query_log
+CALL mtr.add_suppression("Too many connections");
+--enable_query_log
 --replace_result $MASTER_MYPORT MYSQL_PORT $MASTER_MYSOCK MYSQL_SOCK
 --error ER_CON_COUNT_ERROR
 connect (con4, localhost, root,,mysql);

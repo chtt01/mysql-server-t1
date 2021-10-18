@@ -111,6 +111,8 @@ using std::max;
 using std::min;
 using std::unique_ptr;
 
+ulong kill_idle_transaction_timeout = 0;
+
 /*
   The following is used to initialise Table_ident with a internal
   table name
@@ -459,6 +461,7 @@ THD::THD(bool enable_plugins)
   thread_stack = nullptr;
   m_catalog.str = "std";
   m_catalog.length = 3;
+  event_scheduler.data = nullptr;
   password = 0;
   query_start_usec_used = false;
   check_for_truncated_fields = CHECK_FIELD_IGNORE;
@@ -1188,39 +1191,12 @@ void THD::awake(THD::killed_state state_to_set) {
     if (this != current_thd || kill_immunizer) {
       DBUG_ASSERT(!kill_immunizer || !kill_immunizer->is_active());
 
-      /*
-        Before sending a signal, let's close the socket of the thread
-        that is being killed ("this", which is not the current thread).
-        This is to make sure it does not block if the signal is lost.
-        This needs to be done only on platforms where signals are not
-        a reliable interruption mechanism.
-
-        Note that the downside of this mechanism is that we could close
-        the connection while "this" target thread is in the middle of
-        sending a result to the application, thus violating the client-
-        server protocol.
-
-        On the other hand, without closing the socket we have a race
-        condition. If "this" target thread passes the check of
-        thd->killed, and then the current thread runs through
-        THD::awake(), sets the 'killed' flag and completes the
-        signaling, and then the target thread runs into read(), it will
-        block on the socket. As a result of the discussions around
-        Bug#37780, it has been decided that we accept the race
-        condition. A second KILL awakes the target from read().
-
-        If we are killing ourselves, we know that we are not blocked.
-        We also know that we will check thd->killed before we go for
-        reading the next statement.
-      */
-
-      shutdown_active_vio();
+      if (active_vio) vio_cancel(active_vio, SHUT_RDWR);
     }
 
     /* Send an event to the scheduler that a thread should be killed. */
     if (!slave_thread)
-      MYSQL_CALLBACK(Connection_handler_manager::event_functions,
-                     post_kill_notification, (this));
+      MYSQL_CALLBACK(this->scheduler, post_kill_notification, (this));
   }
 
   /* Interrupt target waiting inside a storage engine. */
@@ -1595,7 +1571,7 @@ void THD::shutdown_active_vio() {
   DBUG_TRACE;
   mysql_mutex_assert_owner(&LOCK_thd_data);
   if (active_vio) {
-    vio_shutdown(active_vio);
+    vio_shutdown(active_vio, SHUT_RDWR);
     active_vio = nullptr;
     m_SSL = nullptr;
   }
@@ -1605,7 +1581,7 @@ void THD::shutdown_clone_vio() {
   DBUG_TRACE;
   mysql_mutex_assert_owner(&LOCK_thd_data);
   if (clone_vio != nullptr) {
-    vio_shutdown(clone_vio);
+    vio_shutdown(clone_vio, SHUT_RDWR);
     clone_vio = nullptr;
   }
 }

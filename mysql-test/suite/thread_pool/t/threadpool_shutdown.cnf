@@ -1,0 +1,6 @@
+!include include/default_my.cnf
+
+[mysqld.1]
+thread-handling=pool-of-threads
+thread_pool_size=1
+thread_pool_oversubscribe=3

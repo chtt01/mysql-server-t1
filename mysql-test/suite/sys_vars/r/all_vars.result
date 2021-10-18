@@ -57,6 +57,8 @@ sql_require_primary_key
 sql_require_primary_key
 temptable_use_mmap
 temptable_use_mmap
+thread_pool_dedicated_listener
+thread_pool_dedicated_listener
 tls_ciphersuites
 tls_ciphersuites
 tls_version

@@ -1,0 +1,96 @@
+# Start with thread_handling=pool-of-threads
+
+--source suite/thread_pool/include/have_pool_of_threads.inc
+
+# Calculate value for admin port
+--let $PORT_OFFSET = 1
+--expr $ADMIN_PORT = $MASTER_MYPORT + $PORT_OFFSET
+
+--let $restart_parameters=restart:--admin-port=$ADMIN_PORT --admin-address=127.0.0.1
+
+# initialize data
+CREATE DATABASE db1;
+CREATE TABLE db1.t1 (
+    c1 int NOT NULL,
+    c2 int NOT NULL,
+    PRIMARY KEY (c1)
+);
+INSERT INTO db1.t1 (c1,c2) VALUES (1,11);
+INSERT INTO db1.t1 (c1,c2) VALUES (2,22);
+INSERT INTO db1.t1 (c1,c2) VALUES (3,33);
+
+connect(conn0,127.0.0.1,root,,db1);
+connect(conn1,127.0.0.1,root,,db1);
+
+connection conn0;
+START TRANSACTION;
+SELECT * FROM db1.t1 WHERE c1=2 FOR UPDATE;
+
+connection conn1;
+START TRANSACTION;
+SEND SELECT * FROM db1.t1 WHERE c1=2 LOCK IN SHARE MODE;
+
+connection default;
+--echo # Shutdown the server
+--source include/shutdown_mysqld.inc
+
+--echo # Start the server
+--replace_result $ADMIN_PORT ADMIN_PORT
+--source include/start_mysqld.inc
+
+--source suite/thread_pool/include/have_pool_of_threads.inc
+
+connect(conn2,127.0.0.1,root,,db1);
+connect(conn3,127.0.0.1,root,,db1);
+
+connection conn2;
+SEND SELECT benchmark(9999999999, md5('very long command 1'));
+
+connection conn3;
+SEND SELECT benchmark(9999999999, md5('very long command 2'));
+
+connect(admin_tcp_con1,127.0.0.1,root,,,$ADMIN_PORT,,TCP);
+connection admin_tcp_con1;
+SELECT CURRENT_USER();
+
+connection default;
+--echo # Shutdown the server
+--source include/shutdown_mysqld.inc
+
+--echo # Start the server
+--replace_result $ADMIN_PORT ADMIN_PORT
+--source include/start_mysqld.inc
+
+--source suite/thread_pool/include/have_pool_of_threads.inc
+
+connect(conn4,127.0.0.1,root,,db1);
+connect(conn5,127.0.0.1,root,,db1);
+
+connection conn4;
+SELECT * FROM db1.t1 WHERE c1=1;
+
+connection conn5;
+SELECT * FROM db1.t1 WHERE c1=2;
+
+connect(admin_tcp_con2,127.0.0.1,root,,,$ADMIN_PORT,,TCP);
+connection admin_tcp_con2;
+SELECT CURRENT_USER();
+
+connection default;
+--echo # Shutdown the server
+--source include/shutdown_mysqld.inc
+
+--echo # Start the server
+--replace_result $ADMIN_PORT ADMIN_PORT
+--source include/start_mysqld.inc
+
+--echo # Cleanup
+DROP TABLE db1.t1;
+DROP DATABASE db1;
+
+disconnect conn0;
+disconnect conn1;
+disconnect conn2;
+disconnect conn3;
+disconnect conn4;
+disconnect conn5;
