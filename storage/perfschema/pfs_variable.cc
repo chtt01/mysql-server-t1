@@ -1156,6 +1156,17 @@ int PFS_status_variable_cache::do_materialize_global(void) {
                                         false, /* threads */
                                         true,  /* THDs */
                                         &visitor);
+
+  /*
+    Because of the reason described in 
+    PFS_status_variable_cache::do_materialize_all(THD *unsafe_thd),
+    PFS_status_variable_cache::do_materialize_session(THD *unsafe_thd) and
+    PFS_status_variable_cache::do_materialize_session(PFS_thread *pfs_thread),
+    count_num_thread_running() cannot put together with
+    get_num_thread_running(), so count_num_thread_running() is put here.
+  */
+  Global_THD_manager::get_instance()->count_num_thread_running();
+
   /*
     Build the status variable cache using the SHOW_VAR array as a reference.
     Use the status totals collected from all threads.
@@ -1198,6 +1209,22 @@ int PFS_status_variable_cache::do_materialize_all(THD *unsafe_thd) {
   if (!m_external_init) {
     init_show_var_array(OPT_SESSION, false);
   }
+
+  /*
+    count_num_thread_running() counts the total number of running threads
+    from global thread list, using LOCK_thd_list to protect sharded
+    global thread list. In lock_order_dependencies.txt, the lock order
+    is that LOCK_thd_list must be locked before LOCK_thd_data. In this
+    function, LOCK_thd_data is already locked in get_THD(), Then manifest()
+    will call get_num_thread_running(). If get_num_thread_running() counts
+    and returns the num, the lock order will be incorrect, which may
+    lead to dead lock. To prevent this situation, get_num_thread_running()
+    is split into two part, one is still called get_num_thread_running()
+    which returns the num, the other is called count_num_thread_running()
+    which counts the num and should be called before get_THD() and
+    get_num_thread_running(). So count_num_thread_running() is put here.
+  */
+  Global_THD_manager::get_instance()->count_num_thread_running();
 
   /* Get and lock a validated THD from the thread manager. */
   if ((m_safe_thd = get_THD(unsafe_thd)) != nullptr) {
@@ -1248,6 +1275,22 @@ int PFS_status_variable_cache::do_materialize_session(THD *unsafe_thd) {
     init_show_var_array(OPT_SESSION, true);
   }
 
+  /*
+    count_num_thread_running() counts the total number of running threads
+    from global thread list, using LOCK_thd_list to protect sharded
+    global thread list. In lock_order_dependencies.txt, the lock order
+    is that LOCK_thd_list must be locked before LOCK_thd_data. In this
+    function, LOCK_thd_data is already locked in get_THD(), Then manifest()
+    will call get_num_thread_running(). If get_num_thread_running() counts
+    and returns the num, the lock order will be incorrect, which may
+    lead to dead lock. To prevent this situation, get_num_thread_running()
+    is split into two part, one is still called get_num_thread_running()
+    which returns the num, the other is called count_num_thread_running()
+    which counts the num and should be called before get_THD() and
+    get_num_thread_running(). So count_num_thread_running() is put here.
+  */
+  Global_THD_manager::get_instance()->count_num_thread_running();
+
   /* Get and lock a validated THD from the thread manager. */
   if ((m_safe_thd = get_THD(unsafe_thd)) != nullptr) {
     /*
@@ -1290,6 +1333,22 @@ int PFS_status_variable_cache::do_materialize_session(PFS_thread *pfs_thread) {
 
   /* The SHOW_VAR array must be initialized externally. */
   DBUG_ASSERT(m_initialized);
+
+  /*
+    count_num_thread_running() counts the total number of running threads
+    from global thread list, using LOCK_thd_list to protect sharded
+    global thread list. In lock_order_dependencies.txt, the lock order
+    is that LOCK_thd_list must be locked before LOCK_thd_data. In this
+    function, LOCK_thd_data is already locked in get_THD(), Then manifest()
+    will call get_num_thread_running(). If get_num_thread_running() counts
+    and returns the num, the lock order will be incorrect, which may
+    lead to dead lock. To prevent this situation, get_num_thread_running()
+    is split into two part, one is still called get_num_thread_running()
+    which returns the num, the other is called count_num_thread_running()
+    which counts the num and should be called before get_THD() and
+    get_num_thread_running(). So count_num_thread_running() is put here.
+  */
+  Global_THD_manager::get_instance()->count_num_thread_running();
 
   /* Get and lock a validated THD from the thread manager. */
   if ((m_safe_thd = get_THD(pfs_thread)) != nullptr) {
@@ -1341,6 +1400,16 @@ int PFS_status_variable_cache::do_materialize_client(PFS_client *pfs_client) {
     from disconnected threads.
   */
   m_sum_client_status(pfs_client, &status_totals);
+
+  /*
+    Because of the reason described in 
+    PFS_status_variable_cache::do_materialize_all(THD *unsafe_thd),
+    PFS_status_variable_cache::do_materialize_session(THD *unsafe_thd) and
+    PFS_status_variable_cache::do_materialize_session(PFS_thread *pfs_thread),
+    count_num_thread_running() cannot put together with
+    get_num_thread_running(), so count_num_thread_running() is put here.
+  */
+  Global_THD_manager::get_instance()->count_num_thread_running();
 
   /*
     Build the status variable cache using the SHOW_VAR array as a reference and

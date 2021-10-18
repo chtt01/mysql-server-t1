@@ -1547,7 +1547,6 @@ bool dispatch_command(THD *thd, const COM_DATA *com_data,
   }
   thd->set_query_id(next_query_id());
   thd->reset_rewritten_query();
-  thd_manager->inc_thread_running();
 
   if (!(server_command_flags[command] & CF_SKIP_QUESTIONS))
     thd->status_var.questions++;
@@ -2194,8 +2193,6 @@ done:
 
   /* Prevent rewritten query from getting "stuck" in SHOW PROCESSLIST. */
   thd->reset_rewritten_query();
-
-  thd_manager->dec_thread_running();
 
   /* Freeing the memroot will leave the THD::work_part_info invalid. */
   thd->work_part_info = nullptr;
