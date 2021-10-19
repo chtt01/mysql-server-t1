@@ -323,6 +323,7 @@ THD *Global_THD_manager::find_thd(Find_thd_with_id *func) {
 class Count_thread_running : public Do_THD_Impl {
  public:
   Count_thread_running() : m_count(0) {}
+  ~Count_thread_running() {}
   virtual void operator()(THD *thd) {
     if (thd->get_command() != COM_SLEEP) {
       m_count++;
