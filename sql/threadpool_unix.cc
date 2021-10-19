@@ -463,7 +463,7 @@ static void *timer_thread(void *param) noexcept {
 
   mysql_mutex_destroy(&timer->mutex);
   my_thread_end();
-  return NULL;
+  return nullptr;
 }
 
 /*
@@ -540,10 +540,10 @@ static void check_stall(thread_group_t *thread_group) {
 static void start_timer(pool_timer_t *timer) noexcept {
   my_thread_handle thread_id;
   DBUG_ENTER("start_timer");
-  mysql_mutex_init(key_timer_mutex, &timer->mutex, NULL);
+  mysql_mutex_init(key_timer_mutex, &timer->mutex, nullptr);
   mysql_cond_init(key_timer_cond, &timer->cond);
   timer->shutdown = false;
-  mysql_thread_create(key_timer_thread, &thread_id, NULL, timer_thread, timer);
+  mysql_thread_create(key_timer_thread, &thread_id, nullptr, timer_thread, timer);
   DBUG_VOID_RETURN;
 }
 
@@ -560,7 +560,7 @@ static void stop_timer(pool_timer_t *timer) noexcept {
   Poll for socket events and distribute them to worker threads
   In many case current thread will handle single event itself.
 
-  @return a ready connection, or NULL on shutdown
+  @return a ready connection, or nullptr on shutdown
 */
 static connection_t *listener(thread_group_t *thread_group) {
   DBUG_ENTER("listener");
@@ -836,7 +836,7 @@ static int thread_group_init(thread_group_t *thread_group,
                              pthread_attr_t *thread_attr) noexcept {
   DBUG_ENTER("thread_group_init");
   thread_group->pthread_attr = thread_attr;
-  mysql_mutex_init(key_group_mutex, &thread_group->mutex, NULL);
+  mysql_mutex_init(key_group_mutex, &thread_group->mutex, nullptr);
   thread_group->pollfd = -1;
   thread_group->shutdown_pipe[0] = -1;
   thread_group->shutdown_pipe[1] = -1;
@@ -961,7 +961,7 @@ static void queue_put(thread_group_t *thread_group, connection_t *connection) {
   (if connection is not yet logged in), or there are unread bytes on the socket.
 
   If there are no pending events currently, thread will wait.
-  If timeout specified in abstime parameter passes, the function returns NULL.
+  If timeout specified in abstime parameter passes, the function returns nullptr.
 
   @param current_thread - current worker thread
   @param thread_group - current thread group
@@ -969,7 +969,7 @@ static void queue_put(thread_group_t *thread_group, connection_t *connection) {
 
   @return
   connection with pending event.
-  NULL is returned if timeout has expired,or on shutdown.
+  nullptr is returned if timeout has expired,or on shutdown.
 */
 static connection_t *get_event(worker_thread_t *current_thread,
                                thread_group_t *thread_group,
@@ -1239,7 +1239,9 @@ static void connection_abort(connection_t *connection) {
 */
 void tp_post_kill_notification(THD *thd) noexcept {
   DBUG_ENTER("tp_post_kill_notification");
-  if (current_thd == thd || thd->system_thread) DBUG_VOID_RETURN;
+  if (current_thd == thd || thd->system_thread) {
+    DBUG_VOID_RETURN;
+  }
 
   Vio *vio = thd->get_protocol_classic()->get_vio();
   if (vio) vio_cancel(vio, SHUT_RD);
@@ -1386,7 +1388,7 @@ static int start_io(connection_t *connection) {
 
 static void handle_event(connection_t *connection) {
   DBUG_ENTER("handle_event");
-  int err;
+  int err = 0;
 
   while (1) {
     if (!connection->logged_in) {
@@ -1428,7 +1430,7 @@ static void *admin_port_worker_main(void *param) {
 
 #ifdef HAVE_PSI_THREAD_INTERFACE
   PSI_THREAD_CALL(set_thread_account)
-  (NULL, 0, NULL, 0);
+  (nullptr, 0, nullptr, 0);
 #endif
 
   connection_t *connection = static_cast<connection_t *>(param);
@@ -1465,16 +1467,19 @@ static void *worker_main(void *param) {
 
 #ifdef HAVE_PSI_THREAD_INTERFACE
   PSI_THREAD_CALL(set_thread_account)
-  (NULL, 0, NULL, 0);
+  (nullptr, 0, nullptr, 0);
 #endif
 
   /* Run event loop */
   for (;;) {
-    connection_t *connection;
     struct timespec ts;
     set_timespec(&ts, threadpool_idle_timeout);
-    connection = get_event(&this_thread, thread_group, &ts);
-    if (!connection) break;
+    connection_t *connection = get_event(&this_thread, thread_group, &ts);
+
+    if (!connection) {
+      break;
+    }
+  
     this_thread.event_count++;
     handle_event(connection);
   }
@@ -1524,11 +1529,11 @@ void tp_end() noexcept {
     thread_group_close(&all_groups[i]);
   }
   
-  thread_group_t *thread_group = NULL;
+  thread_group_t *thread_group = nullptr;
   for (uint i = 0; i < array_elements(all_groups); i++) {
     thread_group = &all_groups[i];
     mysql_mutex_lock(&thread_group->mutex);
-    if (thread_group->listener != NULL) {
+    if (thread_group->listener != nullptr) {
       mysql_mutex_unlock(&thread_group->mutex);
       continue;
     }
@@ -1573,7 +1578,10 @@ void tp_set_threadpool_size(uint size) noexcept {
 }
 
 void tp_set_threadpool_stall_limit(uint limit) noexcept {
-  if (!threadpool_started) return;
+  if (!threadpool_started) {
+    return;
+  }
+
   mysql_mutex_lock(&(pool_timer.mutex));
   pool_timer.tick_interval = limit;
   mysql_mutex_unlock(&(pool_timer.mutex));
@@ -1582,11 +1590,12 @@ void tp_set_threadpool_stall_limit(uint limit) noexcept {
 
 void tp_scheduler_event_begin(THD* thd) {
   DBUG_ENTER("tp_scheduler_event_begin");
-  connection_t *connection = (connection_t *)thd->event_scheduler.data;
 
-  if (thd == NULL || connection == NULL) {
+  if (thd == nullptr || thd->event_scheduler.data == nullptr) {
     DBUG_VOID_RETURN;
   }
+
+  connection_t *connection = (connection_t *)thd->event_scheduler.data;
 
   if (thd->get_command() == COM_BINLOG_DUMP_GTID ||
       thd->get_command() == COM_BINLOG_DUMP) {
@@ -1604,11 +1613,12 @@ void tp_scheduler_event_begin(THD* thd) {
 
 void tp_scheduler_event_end(THD* thd) {
   DBUG_ENTER("tp_scheduler_event_end");
-  connection_t *connection = (connection_t *)thd->event_scheduler.data;
 
-  if (thd == NULL || connection == NULL) {
+  if (thd == nullptr || thd->event_scheduler.data == nullptr) {
     DBUG_VOID_RETURN;
   }
+
+  connection_t *connection = (connection_t *)thd->event_scheduler.data;
 
   if (thd->get_command() == COM_BINLOG_DUMP_GTID ||
       thd->get_command() == COM_BINLOG_DUMP) {
@@ -1667,7 +1677,7 @@ A likely cause of pool blocks are clients that lock resources for long time. \
 */
 static void print_pool_blocked_message(bool max_threads_reached) noexcept {
   ulonglong now = my_microsecond_getsystime();
-  static bool msg_written;
+  static bool msg_written = false;
 
   if (pool_block_start == 0) {
     pool_block_start = now;

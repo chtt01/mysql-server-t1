@@ -228,7 +228,6 @@ int threadpool_process_request(THD *thd) {
     was the case).
   */
   for (;;) {
-    Vio *vio;
     thd_set_net_read_write(thd, 0);
 
     if ((retval = do_command(thd)) != 0) goto end;
@@ -238,13 +237,15 @@ int threadpool_process_request(THD *thd) {
       goto end;
     }
 
-    vio = thd->get_protocol_classic()->get_vio();
+    Vio *vio = thd->get_protocol_classic()->get_vio();
+
     if (!vio->has_data(vio)) {
       /* More info on this debug sync is in sql_parse.cc*/
       DEBUG_SYNC(thd, "before_do_command_net_read");
       thd_set_net_read_write(thd, 1);
       goto end;
     }
+
     if (!thd->m_server_idle) {
       MYSQL_SOCKET_SET_STATE(vio->mysql_socket, PSI_SOCKET_STATE_IDLE);
       MYSQL_START_IDLE_WAIT(thd->m_idle_psi, &thd->m_idle_state);
