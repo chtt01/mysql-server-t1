@@ -3329,6 +3329,8 @@ class Item_name_const final : public Item {
   }
 
   Item *pq_clone(THD *thd, SELECT_LEX *select) override;
+  bool pq_copy_from(THD *thd, SELECT_LEX *select, Item *item) override;
+
  protected:
   type_conversion_status save_in_field_inner(Field *field,
                                              bool no_conversions) override {

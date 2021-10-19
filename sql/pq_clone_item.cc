@@ -498,6 +498,13 @@ PQ_CLONE_DEF(Item_name_const) {
   }
 PQ_CLONE_RETURN
 
+PQ_COPY_FROM_DEF(Item_name_const, Item) {
+    if (orig_item != nullptr) {
+      valid_args = orig_item->valid_args;
+    }
+  }
+PQ_COPY_FROM_RETURN
+
 /* Item_result_field start */
 /* Item_func start */
 PQ_COPY_FROM_DEF(Item_func, Item_result_field) {
