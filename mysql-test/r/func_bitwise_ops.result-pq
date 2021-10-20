@@ -1026,10 +1026,9 @@ a	HEX(BIT_AND(b))	HEX(BIT_OR(b))	HEX(BIT_XOR(b))
 3	ABCDEF	ABCDEF	ABCDEF
 EXPLAIN SELECT SQL_BIG_RESULT a, HEX(BIT_AND(b)), HEX(BIT_OR(b)), HEX(BIT_XOR(b)) FROM t1 GROUP BY a;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	Using filesort
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	Using filesort
 Warnings:
-Note	1003	/* select#1 */ select sql_big_result `test`.`t1`.`a` AS `a`,hex(bit_and(`BIT_AND(b)`)) AS `HEX(BIT_AND(b))`,hex(bit_or(`BIT_OR(b)`)) AS `HEX(BIT_OR(b))`,hex(bit_xor(`BIT_XOR(b)`)) AS `HEX(BIT_XOR(b))` from `test`.`t1` group by `test`.`t1`.`a`
+Note	1003	/* select#1 */ select sql_big_result `test`.`t1`.`a` AS `a`,hex(bit_and(`test`.`t1`.`b`)) AS `HEX(BIT_AND(b))`,hex(bit_or(`test`.`t1`.`b`)) AS `HEX(BIT_OR(b))`,hex(bit_xor(`test`.`t1`.`b`)) AS `HEX(BIT_XOR(b))` from `test`.`t1` group by `test`.`t1`.`a`
 INSERT INTO t1 VALUES (2,0x11347290158), (3, 0x149032);
 SELECT a, HEX(BIT_AND(b)), HEX(BIT_OR(b)), HEX(BIT_XOR(b)) FROM t1 GROUP BY a;
 a	HEX(BIT_AND(b))	HEX(BIT_OR(b))	HEX(BIT_XOR(b))
@@ -1353,10 +1352,6 @@ group_id	0x30 << BIT_XOR(a)
 1	48
 4	48
 5	48
-Warnings:
-Warning	1292	Truncated incorrect INTEGER value: ''
-Warning	1292	Truncated incorrect INTEGER value: ''
-Warning	1292	Truncated incorrect INTEGER value: ''
 # testing conversion to real with invalid values
 SELECT
 group_id,
@@ -1367,10 +1362,6 @@ group_id	1.0 * BIT_XOR(a)
 1	0.0
 4	0.0
 5	0.0
-Warnings:
-Warning	1292	Truncated incorrect DOUBLE value: ''
-Warning	1292	Truncated incorrect DOUBLE value: ''
-Warning	1292	Truncated incorrect DOUBLE value: ''
 TRUNCATE TABLE t;
 INSERT INTO t(group_id, a) VALUES
 (1, 0x7BAFBF),
@@ -1410,10 +1401,6 @@ group_id	1.0 * BIT_AND(a)
 1	0.0
 4	0.0
 5	0.0
-Warnings:
-Warning	1292	Truncated incorrect DOUBLE value: 'J??'
-Warning	1292	Truncated incorrect DOUBLE value: '???'
-Warning	1292	Truncated incorrect DOUBLE value: '?'
 # testing conversion to int
 SELECT
 group_id,
@@ -1424,10 +1411,6 @@ group_id	0x30 << BIT_AND(a)
 1	48
 4	48
 5	48
-Warnings:
-Warning	1292	Truncated incorrect INTEGER value: 'J??'
-Warning	1292	Truncated incorrect INTEGER value: '???'
-Warning	1292	Truncated incorrect INTEGER value: '?'
 # testing conversion to real with invalid values
 SELECT
 group_id,
@@ -1438,10 +1421,6 @@ group_id	1.0 * BIT_OR(a)
 1	0.0
 4	0.0
 5	0.0
-Warnings:
-Warning	1292	Truncated incorrect DOUBLE value: '{??'
-Warning	1292	Truncated incorrect DOUBLE value: '???'
-Warning	1292	Truncated incorrect DOUBLE value: '?'
 # testing conversion to int
 SELECT
 group_id,
@@ -1452,10 +1431,6 @@ group_id	0x30 << BIT_OR(a)
 1	48
 4	48
 5	48
-Warnings:
-Warning	1292	Truncated incorrect INTEGER value: '{??'
-Warning	1292	Truncated incorrect INTEGER value: '???'
-Warning	1292	Truncated incorrect INTEGER value: '?'
 DROP table t;
 SET @a:= b'1010010001000010000010000001000000010000000010000000001000000000010000000000010000000000001';
 SELECT BIT_COUNT(@a);
