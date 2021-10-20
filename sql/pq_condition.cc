@@ -49,7 +49,8 @@ const Item_sum::Sumfunctype NO_PQ_SUPPORTED_AGG_FUNC_TYPES [] = {
   Item_sum::JSON_AGG_FUNC,
   Item_sum::UDF_SUM_FUNC,
   Item_sum::STD_FUNC,
-  Item_sum::VARIANCE_FUNC
+  Item_sum::VARIANCE_FUNC,
+  Item_sum::SUM_BIT_FUNC
 };
 
 const Item_func::Functype NO_PQ_SUPPORTED_FUNC_TYPES [] = {
