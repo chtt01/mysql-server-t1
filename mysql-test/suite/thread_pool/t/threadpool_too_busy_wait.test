@@ -20,6 +20,7 @@ connect(conn2,127.0.0.1,root,,db1);
 connection conn0;
 START TRANSACTION;
 SELECT * FROM db1.t1 WHERE c1=2 FOR UPDATE;
+--sleep 1
 
 connection conn1;
 START TRANSACTION;

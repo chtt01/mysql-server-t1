@@ -735,21 +735,11 @@ static connection_t * listener(worker_thread_t *current_thread,
      Q2: If queue is not empty, how many workers to wake?
      
      Solution:
-     We generally try to keep one thread per group active (threads handling 
-     queries   are considered active, unless they stuck in inside some "wait")
-     Thus, we will wake only one worker, and only if there is not active 
-     threads currently,and listener is not going to handle a query. When we 
-     don't wake, we hope that  currently active  threads will finish fast and 
-     handle the queue. If this does  not happen, timer thread will detect stall
-     and wake a worker.
-     
-     NOTE: Currently nothing is done to detect or prevent long queuing times. 
-     A solutionc for the future would be to give up "one active thread per 
-     group" principle, if events stay  in the queue for too long, and just wake 
-     more workers.
+     We will wake up as many workers as possible and conform to threadpool_toobusy.
     */
     
-    bool listener_picks_event= thread_group->high_prio_queue.is_empty() &&
+    bool listener_picks_event= !threadpool_dedicated_listener &&
+      thread_group->high_prio_queue.is_empty() &&
       thread_group->queue.is_empty();
     
     /* 
@@ -771,7 +761,30 @@ static connection_t * listener(worker_thread_t *current_thread,
         queue_push(thread_group, c);
       }
     }
-    
+
+    int workers_can_afford = (int)threadpool_toobusy -
+                             thread_group->active_thread_count - thread_group->waiting_thread_count - (listener_picks_event ? 1 : 0);
+
+    if (workers_can_afford <= 0 && !listener_picks_event && thread_group->active_thread_count == 0)
+    {
+      workers_can_afford = 1;
+    }
+
+    int workers_in_need = std::min(workers_can_afford, listener_picks_event ? (cnt - 1) : cnt);
+
+    for (int i = 0; i < workers_in_need; i++)
+    {
+      /* We added some work items to queue, now wake a worker. */
+      if(wake_thread(thread_group, false))
+      {
+        /* 
+          Wake failed, hence groups has no idle threads. Now check if there are
+          any threads in the group except listener.
+        */ 
+        create_worker(thread_group, false);
+      }
+    }
+
     if (listener_picks_event)
     {
       /* Handle the first event. */
@@ -781,31 +794,6 @@ static connection_t * listener(worker_thread_t *current_thread,
       break;
     }
 
-    if(thread_group->active_thread_count==0)
-    {
-      /* We added some work items to queue, now wake a worker. */
-      if(wake_thread(thread_group, false))
-      {
-        /* 
-          Wake failed, hence groups has no idle threads. Now check if there are
-          any threads in the group except listener.
-        */ 
-        if(thread_group->thread_count == 1)
-        {
-           /*
-             Currently there is no worker thread in the group, as indicated by
-             thread_count == 1 (this means listener is the only one thread in 
-             the group).
-             The queue is not empty, and listener is not going to handle
-             events. In order to drain the queue,  we create a worker here.
-             Alternatively, we could just rely on timer to detect stall, and 
-             create thread, but waiting for timer would be an inefficient and
-             pointless delay.
-           */
-           create_worker(thread_group, false);
-        }
-      }
-    }
     mysql_mutex_unlock(&thread_group->mutex);
   }
 
@@ -930,7 +918,7 @@ static int wake_or_create_thread(thread_group_t *thread_group, bool due_to_stall
     DBUG_RETURN(-1);
 
  
-  if (thread_group->active_thread_count == 0)
+  if (thread_group->active_thread_count < (int)threadpool_oversubscribe)
   {
     /*
      We're better off creating a new thread here  with no delay, either there 
@@ -1084,7 +1072,7 @@ static void queue_put(thread_group_t *thread_group, connection_t *connection)
   connection->tickets= connection->thd->variables.threadpool_high_prio_tickets;
   queue_push(thread_group, connection);
 
-  if (thread_group->active_thread_count == 0)
+  if (thread_group->active_thread_count < (int)threadpool_oversubscribe)
     wake_or_create_thread(thread_group);
 
   mysql_mutex_unlock(&thread_group->mutex);
@@ -1209,7 +1197,7 @@ static connection_t *get_event(worker_thread_t *current_thread,
     if (abstime)
     {
       err = mysql_cond_timedwait(&current_thread->cond, &thread_group->mutex, 
-                                 abstime);
+                                abstime);
     }
     else
     {
@@ -1255,7 +1243,7 @@ static void wait_begin(thread_group_t *thread_group)
   DBUG_ASSERT(thread_group->connection_count > 0);
 
 #ifdef THREADPOOL_CREATE_THREADS_ON_WAIT
-  if ((thread_group->active_thread_count == 0) && 
+  if ((thread_group->active_thread_count < (int)threadpool_oversubscribe) && 
       (!queues_are_empty(thread_group) || !thread_group->listener))
   {
     /* 

@@ -4192,6 +4192,13 @@ static Sys_var_enum Sys_threadpool_high_prio_mode(
   SESSION_VAR(threadpool_high_prio_mode), CMD_LINE(REQUIRED_ARG),
   threadpool_high_prio_mode_names, DEFAULT(TP_HIGH_PRIO_MODE_TRANSACTIONS));
 
+static Sys_var_mybool Sys_threadpool_dedicated_listener(
+  "thread_pool_dedicated_listener",
+  "If set to 1, listener thread will not pick up queries.",
+  GLOBAL_VAR(threadpool_dedicated_listener), CMD_LINE(OPT_ARG), DEFAULT(FALSE),
+  NO_MUTEX_GUARD, NOT_IN_BINLOG
+);
+
 #endif /* !WIN32 */
 static Sys_var_uint Sys_threadpool_max_threads(
   "thread_pool_max_threads",
