@@ -835,6 +835,11 @@ err:
   pq_stack_reset();
 #endif
 
+  /* Clean up openssl errors. */
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+    ERR_remove_thread_state(0);
+#endif
+
   my_thread_end();
   /* s4: send last status to leader */
   PQ_worker_state status =
