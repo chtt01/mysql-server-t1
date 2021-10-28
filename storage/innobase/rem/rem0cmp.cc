@@ -650,8 +650,14 @@ int cmp_sec_dtuple_pri_rec_with_match(const dtuple_t *dtuple, const rec_t *rec,
     } else {
       /* For now, change buffering is only supported on
       indexes with ascending order on the columns. */
-      if(dtuple_f_len != UNIV_SQL_NULL && rec_f_len != UNIV_SQL_NULL)
-        rec_f_len = dtuple_f_len;
+      if(dtuple_f_len != UNIV_SQL_NULL && rec_f_len != UNIV_SQL_NULL && dtuple_f_len < rec_f_len) {
+        const dict_field_t *field = index->get_field(i);
+        if (field->prefix_len > 0) {
+          rec_f_len = dtype_get_at_most_n_mbchars(
+          field->col->prtype, field->col->mbminmaxlen, field->prefix_len, rec_f_len,
+          reinterpret_cast<const char *>(rec_b_ptr));
+        }
+      }
       ret = cmp_data(
           type->mtype, type->prtype,
           dict_index_is_ibuf(index) || index->get_field(i)->is_ascending,
