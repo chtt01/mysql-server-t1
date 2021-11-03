@@ -1495,9 +1495,14 @@ dberr_t Parallel_reader::Scan_ctx::create_contexts(const Ranges &ranges) {
   }
 
   size_t i{};
-
+  size_t split_num = 0;
+  if (ranges.size() > split_point) {
+    split_num = ranges.size() - split_point;
+  }
+  bool split;
   for (auto range : ranges) {
-    auto err = create_context(range, i >= split_point);
+    split = m_config.m_pq_reverse_scan ? i < split_num : i >= split_point;
+    auto err = create_context(range, split);
 
     if (err != DB_SUCCESS) {
       return (err);

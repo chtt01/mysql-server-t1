@@ -625,8 +625,6 @@ PQ_exec_status make_pq_leader_plan(THD *thd) {
         join->qep_tab[i].set_position(nullptr);
       }
     }
-    destroy(tab->filesort);
-    tab->filesort = nullptr;
     join->m_root_iterator.reset();
     join->unit->m_root_iterator.reset();
 
