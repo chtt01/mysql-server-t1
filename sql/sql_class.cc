@@ -570,6 +570,7 @@ THD::THD(bool enable_plugins)
   mysql_mutex_init(key_LOCK_query_plan, &LOCK_query_plan, MY_MUTEX_INIT_FAST);
   mysql_mutex_init(key_LOCK_current_cond, &LOCK_current_cond,
                    MY_MUTEX_INIT_FAST);
+  mysql_mutex_init(0, &pq_lock_worker, MY_MUTEX_INIT_FAST);
   mysql_cond_init(key_COND_thr_lock, &COND_thr_lock);
 
   /* Variables with default values */
@@ -1168,6 +1169,7 @@ THD::~THD() {
   mysql_mutex_destroy(&LOCK_thd_sysvar);
   mysql_mutex_destroy(&LOCK_thd_protocol);
   mysql_mutex_destroy(&LOCK_current_cond);
+  mysql_mutex_destroy(&pq_lock_worker);
   mysql_cond_destroy(&COND_thr_lock);
 #ifndef DBUG_OFF
   dbug_sentry = THD_SENTRY_GONE;
@@ -1245,6 +1247,17 @@ void THD::awake(THD::killed_state state_to_set) {
   if (this->m_server_idle && state_to_set == KILL_QUERY) { /* nothing */
   } else {
     killed = state_to_set;
+  }
+
+  /* Kill the workers if parallel query. */
+  if (parallel_exec) {
+    mysql_mutex_lock(&pq_lock_worker);
+    for (auto pq_worker : pq_workers) {
+      mysql_mutex_lock(&pq_worker->LOCK_thd_data);
+      pq_worker->awake(state_to_set);
+      mysql_mutex_unlock(&pq_worker->LOCK_thd_data);
+    }
+    mysql_mutex_unlock(&pq_lock_worker);
   }
 
   if (state_to_set != THD::KILL_QUERY && state_to_set != THD::KILL_TIMEOUT) {
@@ -1556,6 +1569,7 @@ void THD::cleanup_after_query() {
     no_pq = false;
     locking_clause = 0;
     pq_error = false;
+    pq_workers.clear();
 
     if (killed == THD::KILL_PQ_QUERY)
      killed.store(THD::NOT_KILLED); // restore killed for next query

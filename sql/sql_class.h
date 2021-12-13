@@ -921,6 +921,11 @@ class THD : public MDL_context_owner,
   /* check first table. */
   uint pq_check_fields{0};
   uint pq_check_reclen{0};
+  
+  /* save PQ worker THDs. */
+  std::vector<THD*> pq_workers;
+  /* protects THD::pq_workers. */
+  mysql_mutex_t pq_lock_worker;
 
   /* Used to execute base64 coded binlog events in MySQL server */
   Relay_log_info *rli_fake;

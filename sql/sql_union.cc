@@ -1164,8 +1164,10 @@ bool SELECT_LEX_UNIT::ExecuteIteratorQuery(THD *thd) {
 
   thd->get_stmt_da()->reset_current_row_for_condition();
   if (m_root_iterator->Init()) {
-    /** for parallel scan, we should end the root iterator*/
-    if (thd->parallel_exec) m_root_iterator->End();
+    /** for parallel scan, we should end the pq iterator */
+    if (thd->parallel_exec && thd->pq_iterator) {
+      thd->pq_iterator->End();
+    }
     return true;
   }
 
