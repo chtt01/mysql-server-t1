@@ -693,6 +693,15 @@ static JOIN *make_pq_worker_plan(PQ_worker_manager *mngr) {
   if (!new_thd) goto err;
   new_thd->pq_leader = mngr->thd_leader;
   new_thd->mem_root = new_thd->pq_mem_root;
+  
+  /* save worker's THD in leader's THD */
+  mysql_mutex_lock(&mngr->thd_leader->pq_lock_worker);
+  if (mngr->thd_leader->killed) {
+    mysql_mutex_unlock(&mngr->thd_leader->pq_lock_worker);
+    goto err;
+  }
+  mngr->thd_leader->pq_workers.push_back(new_thd);
+  mysql_mutex_unlock(&mngr->thd_leader->pq_lock_worker);
 
   join = pq_make_join(new_thd, template_join);
   if (!join || pq_dup_tabs(join, template_join, true) ||
