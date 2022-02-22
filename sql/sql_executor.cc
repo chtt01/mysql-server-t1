@@ -1,4 +1,5 @@
 /* Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -126,6 +127,7 @@
 #include "tables_contained_in.h"
 #include "template_utils.h"
 #include "thr_lock.h"
+#include "msg_queue.h"
 
 using std::make_pair;
 using std::max;
@@ -193,7 +195,7 @@ string RefToString(const TABLE_REF &ref, const KEY *key, bool include_nulls) {
 
 bool JOIN::create_intermediate_table(
     QEP_TAB *const tab, const mem_root_deque<Item *> &tmp_table_fields,
-    ORDER_with_src &tmp_table_group, bool save_sum_fields) {
+    ORDER_with_src &tmp_table_group, bool save_sum_fields, bool force_disk_table) {
   DBUG_TRACE;
   THD_STAGE_INFO(thd, stage_creating_tmp_table);
   const bool windowing = m_windows.elements > 0;
@@ -208,7 +210,11 @@ bool JOIN::create_intermediate_table(
           ? m_select_limit
           : HA_POS_ERROR;
 
-  tab->tmp_table_param = new (thd->mem_root) Temp_table_param(tmp_table_param);
+  tab->tmp_table_param = new (thd->mem_root) Temp_table_param(*tmp_table_param);
+  if (tab->tmp_table_param == nullptr) {
+    return true;
+  }
+
   tab->tmp_table_param->skip_create_table = true;
 
   bool distinct_arg =
@@ -222,9 +228,9 @@ bool JOIN::create_intermediate_table(
   TABLE *table =
       create_tmp_table(thd, tab->tmp_table_param, tmp_table_fields,
                        tmp_table_group.order, distinct_arg, save_sum_fields,
-                       query_block->active_options(), tmp_rows_limit, "");
+                       query_block->active_options(), tmp_rows_limit, "", force_disk_table);
   if (!table) return true;
-  tmp_table_param.using_outer_summary_function =
+  tmp_table_param->using_outer_summary_function =
       tab->tmp_table_param->using_outer_summary_function;
 
   assert(tab->idx() > 0);
@@ -259,11 +265,15 @@ bool JOIN::create_intermediate_table(
   if (!group_list.empty() && simple_group) {
     DBUG_PRINT("info", ("Sorting for group"));
 
-    if (m_ordered_index_usage != ORDERED_INDEX_GROUP_BY &&
-        add_sorting_to_table(const_tables, &group_list,
+    if (m_ordered_index_usage != ORDERED_INDEX_GROUP_BY) {
+      if (add_sorting_to_table(const_tables, &group_list,
                              /*force_stable_sort=*/false,
                              /*sort_before_group=*/true))
-      goto err;
+        goto err;
+
+      pq_last_sort_idx = const_tables;
+      pq_rebuilt_group = true;
+    }
 
     if (alloc_group_fields(this, group_list.order)) goto err;
     if (make_sum_func_list(*fields, true)) goto err;
@@ -289,11 +299,14 @@ bool JOIN::create_intermediate_table(
         simple_order && rollup_state == RollupState::NONE && !m_windows_sort) {
       DBUG_PRINT("info", ("Sorting for order"));
 
-      if (m_ordered_index_usage != ORDERED_INDEX_ORDER_BY &&
-          add_sorting_to_table(const_tables, &order,
+      if (m_ordered_index_usage != ORDERED_INDEX_ORDER_BY) {
+          if (add_sorting_to_table(const_tables, &order,
                                /*force_stable_sort=*/false,
                                /*sort_before_group=*/false))
         goto err;
+
+        pq_last_sort_idx = const_tables;
+      }
       order.clean();
     }
   }
@@ -641,7 +654,7 @@ QEP_TAB::enum_op_type JOIN::get_end_select_func() {
      more aggregate functions). Use end_send if the query should not
      be grouped.
    */
-  if (streaming_aggregation && !tmp_table_param.precomputed_group_by) {
+  if (streaming_aggregation && !tmp_table_param->precomputed_group_by) {
     DBUG_PRINT("info", ("Using end_send_group"));
     return QEP_TAB::OT_AGGREGATE;
   }
@@ -1473,12 +1486,12 @@ AccessPath *GetAccessPathForDerivedTable(
   if (query_expression->is_simple()) {
     subjoin = query_expression->first_query_block()->join;
     select_number = query_expression->first_query_block()->select_number;
-    tmp_table_param = &subjoin->tmp_table_param;
+    tmp_table_param = subjoin->tmp_table_param;
   } else if (query_expression->fake_query_block != nullptr) {
     // NOTE: subjoin here is never used, as ConvertItemsToCopy only uses it
     // for ROLLUP, and fake_query_block can't have ROLLUP.
     subjoin = query_expression->fake_query_block->join;
-    tmp_table_param = &subjoin->tmp_table_param;
+    tmp_table_param = subjoin->tmp_table_param;
     select_number = query_expression->fake_query_block->select_number;
   } else {
     tmp_table_param = new (thd->mem_root) Temp_table_param;
@@ -1528,7 +1541,7 @@ AccessPath *GetAccessPathForDerivedTable(
     // also conservative; if the CTE is defined within this join and used
     // only once, we could still stream without losing performance.
     path = NewStreamingAccessPath(thd, query_expression->root_access_path(),
-                                  subjoin, &subjoin->tmp_table_param, table,
+                                  subjoin, subjoin->tmp_table_param, table,
                                   /*ref_slice=*/-1);
     CopyCosts(*query_expression->root_access_path(), path);
   } else {
@@ -2828,37 +2841,45 @@ AccessPath *JOIN::create_root_access_path_for_join() {
     path->num_output_rows = query_block->row_value_list->size();
     path->cost = 0.0;
   } else if (const_tables == primary_tables) {
-    // Only const tables, so add a fake single row to join in all
-    // the const tables (only inner-joined tables are promoted to
-    // const tables in the optimizer).
-    path = NewFakeSingleRowAccessPath(thd, /*count_examined_rows=*/true);
-    qep_tab_map conditions_depend_on_outer_tables = 0;
-    if (where_cond != nullptr) {
-      path = PossiblyAttachFilter(path, vector<Item *>{where_cond}, thd,
-                                  &conditions_depend_on_outer_tables);
-    }
+    if (need_tmp_pq_leader) {
+      assert(thd->parallel_exec && !thd->is_worker());
+      QEP_TAB *tab = &qep_tab[const_tables];
+      path = NewParallelScanAccessPath(thd, tab, tab->table(), tab->gather,
+                                      pq_stable_sort,
+                                      tab->old_table()->file->ref_length);
+    } else {
+      // Only const tables, so add a fake single row to join in all
+      // the const tables (only inner-joined tables are promoted to
+      // const tables in the optimizer).
+      path = NewFakeSingleRowAccessPath(thd, /*count_examined_rows=*/true);
+      qep_tab_map conditions_depend_on_outer_tables = 0;
+      if (where_cond != nullptr) {
+        path = PossiblyAttachFilter(path, vector<Item *>{where_cond}, thd,
+                                    &conditions_depend_on_outer_tables);
+      }
 
-    // Surprisingly enough, we can specify that the const tables are
-    // to be dumped immediately to a temporary table. If we don't do this,
-    // we risk that there are fields that are not copied correctly
-    // (tmp_table_param contains copy_funcs we'd otherwise miss).
-    if (const_tables > 0) {
-      QEP_TAB *qep_tab = &this->qep_tab[const_tables];
-      if (qep_tab->op_type == QEP_TAB::OT_MATERIALIZE) {
-        qep_tab->table()->alias = "<temporary>";
-        AccessPath *table_path =
-            create_table_access_path(thd, nullptr, qep_tab,
-                                     /*count_examined_rows=*/false);
-        path = NewMaterializeAccessPath(
-            thd,
-            SingleMaterializeQueryBlock(
-                thd, path, query_block->select_number, this,
-                /*copy_fields_and_items=*/true, qep_tab->tmp_table_param),
-            qep_tab->invalidators, qep_tab->table(), table_path,
-            /*cte=*/nullptr, query_expression(), qep_tab->ref_item_slice,
-            /*rematerialize=*/true, qep_tab->tmp_table_param->end_write_records,
-            /*reject_multiple_rows=*/false);
-        EstimateMaterializeCost(path);
+      // Surprisingly enough, we can specify that the const tables are
+      // to be dumped immediately to a temporary table. If we don't do this,
+      // we risk that there are fields that are not copied correctly
+      // (tmp_table_param contains copy_funcs we'd otherwise miss).
+      if (const_tables > 0) {
+        QEP_TAB *qep_tab = &this->qep_tab[const_tables];
+        if (qep_tab->op_type == QEP_TAB::OT_MATERIALIZE) {
+          qep_tab->table()->alias = "<temporary>";
+          AccessPath *table_path =
+              create_table_access_path(thd, nullptr, qep_tab,
+                                      /*count_examined_rows=*/false);
+          path = NewMaterializeAccessPath(
+              thd,
+              SingleMaterializeQueryBlock(
+                  thd, path, query_block->select_number, this,
+                  /*copy_fields_and_items=*/true, qep_tab->tmp_table_param),
+              qep_tab->invalidators, qep_tab->table(), table_path,
+              /*cte=*/nullptr, query_expression(), qep_tab->ref_item_slice,
+              /*rematerialize=*/true, qep_tab->tmp_table_param->end_write_records,
+              /*reject_multiple_rows=*/false);
+          EstimateMaterializeCost(path);
+        }
       }
     }
   } else {
@@ -3024,7 +3045,7 @@ AccessPath *JOIN::create_root_access_path_for_join() {
             qep_tab->invalidators, qep_tab->table(), table_path,
             /*cte=*/nullptr, query_expression(),
             /*ref_slice=*/-1,
-            /*rematerialize=*/true, tmp_table_param.end_write_records,
+            /*rematerialize=*/true, tmp_table_param->end_write_records,
             /*reject_multiple_rows=*/false);
         EstimateMaterializeCost(path);
       }
@@ -3114,17 +3135,17 @@ AccessPath *JOIN::create_root_access_path_for_join() {
     do_aggregate = (qep_tab[primary_tables + tmp_tables].op_type ==
                     QEP_TAB::OT_AGGREGATE) ||
                    ((grouped || group_optimized_away) &&
-                    tmp_table_param.precomputed_group_by);
+                    tmp_table_param->precomputed_group_by);
   }
   if (do_aggregate) {
     // Aggregate as we go, with output into a special slice of the same table.
-    assert(streaming_aggregation || tmp_table_param.precomputed_group_by);
+    assert(streaming_aggregation || tmp_table_param->precomputed_group_by);
 #ifndef NDEBUG
     for (unsigned table_idx = const_tables; table_idx < tables; ++table_idx) {
       assert(qep_tab->op_type != QEP_TAB::OT_AGGREGATE_THEN_MATERIALIZE);
     }
 #endif
-    if (!tmp_table_param.precomputed_group_by) {
+    if (!tmp_table_param->precomputed_group_by) {
       path =
           NewAggregateAccessPath(thd, path, rollup_state != RollupState::NONE);
     }
@@ -3899,7 +3920,12 @@ bool DynamicRangeIterator::Init() {
   Key_map needed_reg_dummy;
   QUICK_SELECT_I *old_qck = m_qep_tab->quick();
   QUICK_SELECT_I *qck;
-  DEBUG_SYNC(thd(), "quick_not_created");
+  if (thd()->pq_leader != nullptr) {
+    DEBUG_SYNC(thd()->pq_leader, "quick_not_created");
+  } else {
+    DEBUG_SYNC(thd(), "quick_not_created");
+  }
+
   const int rc = test_quick_select(
       thd(), m_qep_tab->keys(),
       0,  // empty table map
@@ -3921,7 +3947,11 @@ bool DynamicRangeIterator::Init() {
     that, we need to take mutex and change type and quick_optim.
   */
 
-  DEBUG_SYNC(thd(), "quick_created_before_mutex");
+  if (thd()->pq_leader != nullptr) {
+    DEBUG_SYNC(thd()->pq_leader, "quick_created_before_mutex");
+  } else {
+    DEBUG_SYNC(thd(), "quick_created_before_mutex");
+  }
 
   thd()->lock_query_plan();
   m_qep_tab->set_type(qck ? calc_join_type(qck->get_type()) : JT_ALL);
@@ -3929,7 +3959,11 @@ bool DynamicRangeIterator::Init() {
   thd()->unlock_query_plan();
 
   delete old_qck;
-  DEBUG_SYNC(thd(), "quick_droped_after_mutex");
+  if (thd()->pq_leader != nullptr) {
+    DEBUG_SYNC(thd()->pq_leader, "quick_droped_after_mutex");
+  } else {
+    DEBUG_SYNC(thd(), "quick_droped_after_mutex");
+  }
 
   // Clear out and destroy any old iterators before we start constructing
   // new ones, since they may share the same memory in the union.
@@ -4150,14 +4184,16 @@ bool AlternativeIterator::Init() {
 AccessPath *QEP_TAB::access_path() {
   assert(table());
   // Only some access methods support reversed access:
-  assert(!m_reversed_access || type() == JT_REF || type() == JT_INDEX_SCAN);
+  assert(current_thd->parallel_exec || !m_reversed_access || type() == JT_REF || type() == JT_INDEX_SCAN);
   TABLE_REF *used_ref = nullptr;
   AccessPath *path = nullptr;
 
   const TABLE *pushed_root = table()->file->member_of_pushed_join();
   const bool is_pushed_child = (pushed_root && pushed_root != table());
   // A 'pushed_child' has to be a REF type
-  assert(!is_pushed_child || type() == JT_REF || type() == JT_EQ_REF);
+  assert(current_thd->parallel_exec || !is_pushed_child || type() == JT_REF || type() == JT_EQ_REF);
+
+  bool pq_replace_accesspath = false;
 
   switch (type()) {
     case JT_REF:
@@ -4170,6 +4206,8 @@ AccessPath *QEP_TAB::access_path() {
         path = NewRefAccessPath(join()->thd, table(), &ref(), use_order(),
                                 m_reversed_access,
                                 /*count_examined_rows=*/true);
+
+        pq_replace_accesspath = true;
       }
       used_ref = &ref();
       break;
@@ -4208,6 +4246,8 @@ AccessPath *QEP_TAB::access_path() {
       path = NewIndexScanAccessPath(join()->thd, table(), index(), use_order(),
                                     m_reversed_access,
                                     /*count_examined_rows=*/true);
+
+      pq_replace_accesspath = true;
       break;
     case JT_ALL:
     case JT_RANGE:
@@ -4217,12 +4257,18 @@ AccessPath *QEP_TAB::access_path() {
                                                   /*count_examined_rows=*/true);
       } else {
         path = create_table_access_path(join()->thd, nullptr, this,
-                                        /*count_examined_rows=*/true);
+                                        /*count_examined_rows=*/true, &pq_replace_accesspath);
       }
       break;
     default:
       assert(false);
       break;
+  }
+
+  /** note that: for gather operator, we have no need to generate iterator */
+  if (current_thd->is_worker() && pq_replace_accesspath && do_parallel_scan) {
+    path = NewPQBlockScanAccessPath(current_thd, table(), gather,
+                                      join()->pq_stable_sort);
   }
 
   /*
@@ -6270,13 +6316,23 @@ bool change_to_use_tmp_fields(mem_root_deque<Item *> *fields, THD *thd,
         ifield->table_name = iref->table_name;
         ifield->set_orig_db_name(iref->orig_db_name());
         ifield->db_name = iref->db_name;
+        if (thd->parallel_exec) {
+          ifield->ref = true;
+          Send_field tmp_field;
+          item->make_field(&tmp_field);
+          ifield->field->flags = tmp_field.flags;
+          ifield->ref_col_name = iref->item_name.ptr();
+          ifield->set_orig_table_name(iref->orig_table_name());
+        }
       }
       if (orig_field != nullptr && item != new_item) {
         down_cast<Item_field *>(new_item)->set_orig_table_name(
             orig_field->orig_table_name());
       }
 #ifndef NDEBUG
-      if (!new_item->item_name.is_set()) {
+      /* Do not set the item_name here when parallel query to keep the MTR 
+         execution results of the release and debug versions same. */
+      if (!new_item->item_name.is_set() && thd->m_suite_for_pq == PqConditionStatus::NOT_SUPPORTED) {
         char buff[256];
         String str(buff, sizeof(buff), &my_charset_bin);
         str.length(0);
@@ -6287,6 +6343,10 @@ bool change_to_use_tmp_fields(mem_root_deque<Item *> *fields, THD *thd,
     } else {
       new_item = item;
       replace_embedded_rollup_references_with_tmp_fields(thd, item, fields);
+    }
+
+    if (item->type() == Item::SUM_FUNC_ITEM && item->const_item() && thd->parallel_exec) {
+      new_item = item;
     }
 
     new_item->hidden = item->hidden;
@@ -6615,7 +6675,7 @@ int UnqualifiedCountIterator::Read() {
   // If we are outputting to a temporary table, we need to copy the results
   // into it here. It is also used for nonaggregated items, even when there are
   // no temporary tables involved.
-  if (copy_fields_and_funcs(&m_join->tmp_table_param, m_join->thd)) {
+  if (copy_fields_and_funcs(m_join->tmp_table_param, m_join->thd)) {
     return 1;
   }
 
