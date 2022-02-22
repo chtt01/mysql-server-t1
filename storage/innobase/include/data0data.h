@@ -1,6 +1,7 @@
 /*****************************************************************************
 
 Copyright (c) 1994, 2021, Oracle and/or its affiliates.
+Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License, version 2.0, as published by the
@@ -810,6 +811,9 @@ struct dtuple_t {
     }
     return (false);
   }
+
+  int compare(const rec_t *rec, const dict_index_t *index, const dict_index_t *index2,
+                           const ulint *offsets);
 };
 
 /** A slot for a field in a big rec vector */
