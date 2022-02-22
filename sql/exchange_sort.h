@@ -110,7 +110,7 @@ class Exchange_sort : public Exchange {
 
   /** get the k-th record in m_min_records */
   mq_record_st *get_record(int k) {
-    DBUG_ASSERT(0 <= k && k < lanuch_workers());
+    assert(0 <= k && k < lanuch_workers());
     mq_record_st *record = m_min_records[k];
     return record;
   }
@@ -120,12 +120,12 @@ class Exchange_sort : public Exchange {
   inline const Filesort *get_filesort() { return m_sort; }
 
   inline uchar *get_row_id(int i) {
-    DBUG_ASSERT(0 <= i && i < 2);
+    assert(0 <= i && i < 2);
     return row_id[i];
   }
 
   inline uchar *get_key(int i) {
-    DBUG_ASSERT(0 <= i && i < 2);
+    assert(0 <= i && i < 2);
     return keys[i];
   }
 

@@ -2,6 +2,7 @@
 #define ITEM_FUNC_INCLUDED
 
 /* Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -285,7 +286,9 @@ class Item_func : public Item_result_field {
     JSON_UNQUOTE_FUNC,
     MEMBER_OF_FUNC,
     STRCMP_FUNC,
-    TRUE_FUNC
+    TRUE_FUNC,
+    JSON_FUNC,
+    XML_FUNC
   };
   enum optimize_type {
     OPTIMIZE_NONE,
@@ -698,6 +701,7 @@ class Item_func : public Item_result_field {
   bool check_column_in_group_by(uchar *arg) override;
 
   longlong val_int_from_real();
+  bool pq_copy_from(THD *thd, Query_block *select, Item *item) override;
 };
 
 class Item_real_func : public Item_func {
@@ -972,6 +976,9 @@ class Item_func_connection_id final : public Item_int_func {
     return ((func_arg->source == VGS_GENERATED_COLUMN) ||
             (func_arg->source == VGS_CHECK_CONSTRAINT));
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
+  bool pq_copy_from(THD *thd, Query_block *select, Item *item) override;
 };
 
 class Item_typecast_signed final : public Item_int_func {
@@ -985,6 +992,7 @@ class Item_typecast_signed final : public Item_int_func {
   void print(const THD *thd, String *str,
              enum_query_type query_type) const override;
   enum Functype functype() const override { return TYPECAST_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_typecast_unsigned final : public Item_int_func {
@@ -998,14 +1006,16 @@ class Item_typecast_unsigned final : public Item_int_func {
   void print(const THD *thd, String *str,
              enum_query_type query_type) const override;
   enum Functype functype() const override { return TYPECAST_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_typecast_decimal final : public Item_func {
  public:
   Item_typecast_decimal(const POS &pos, Item *a, int len, int dec)
-      : Item_func(pos, a) {
+      : Item_func(pos, a), pq_precision(len) {
     set_data_type_decimal(len, dec);
   }
+  int pq_precision;
   String *val_str(String *str) override;
   double val_real() override;
   longlong val_int() override;
@@ -1026,6 +1036,7 @@ class Item_typecast_decimal final : public Item_func {
   enum Functype functype() const override { return TYPECAST_FUNC; }
   void print(const THD *thd, String *str,
              enum_query_type query_type) const override;
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 /**
@@ -1055,6 +1066,7 @@ class Item_typecast_real final : public Item_func {
   enum Functype functype() const override { return TYPECAST_FUNC; }
   void print(const THD *thd, String *str,
              enum_query_type query_type) const override;
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_additive_op : public Item_num_op {
@@ -1082,6 +1094,7 @@ class Item_func_plus final : public Item_func_additive_op {
   double real_op() override;
   my_decimal *decimal_op(my_decimal *) override;
   enum Functype functype() const override { return PLUS_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_minus final : public Item_func_additive_op {
@@ -1099,6 +1112,7 @@ class Item_func_minus final : public Item_func_additive_op {
   my_decimal *decimal_op(my_decimal *) override;
   bool resolve_type(THD *thd) override;
   enum Functype functype() const override { return MINUS_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_mul final : public Item_num_op {
@@ -1114,6 +1128,7 @@ class Item_func_mul final : public Item_num_op {
   bool check_partition_func_processor(uchar *) override { return false; }
   bool check_function_as_value_generator(uchar *) override { return false; }
   enum Functype functype() const override { return MUL_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_div final : public Item_num_op {
@@ -1130,6 +1145,7 @@ class Item_func_div final : public Item_num_op {
   bool resolve_type(THD *thd) override;
   void result_precision() override;
   enum Functype functype() const override { return DIV_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_int_div final : public Item_int_func {
@@ -1148,6 +1164,7 @@ class Item_func_int_div final : public Item_int_func {
 
   bool check_partition_func_processor(uchar *) override { return false; }
   bool check_function_as_value_generator(uchar *) override { return false; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_mod final : public Item_num_op {
@@ -1164,6 +1181,7 @@ class Item_func_mod final : public Item_num_op {
   bool check_partition_func_processor(uchar *) override { return false; }
   bool check_function_as_value_generator(uchar *) override { return false; }
   enum Functype functype() const override { return MOD_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_neg final : public Item_func_num1 {
@@ -1183,6 +1201,7 @@ class Item_func_neg final : public Item_func_num1 {
   }
   bool check_partition_func_processor(uchar *) override { return false; }
   bool check_function_as_value_generator(uchar *) override { return false; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_abs final : public Item_func_num1 {
@@ -1196,6 +1215,7 @@ class Item_func_abs final : public Item_func_num1 {
   bool check_partition_func_processor(uchar *) override { return false; }
   bool check_function_as_value_generator(uchar *) override { return false; }
   enum Functype functype() const override { return ABS_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 // A class to handle logarithmic and trigonometric functions
@@ -1215,6 +1235,7 @@ class Item_func_exp final : public Item_dec_func {
   double val_real() override;
   const char *func_name() const override { return "exp"; }
   enum Functype functype() const override { return EXP_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_ln final : public Item_dec_func {
@@ -1223,6 +1244,7 @@ class Item_func_ln final : public Item_dec_func {
   double val_real() override;
   const char *func_name() const override { return "ln"; }
   enum Functype functype() const override { return LN_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_log final : public Item_dec_func {
@@ -1232,6 +1254,7 @@ class Item_func_log final : public Item_dec_func {
   double val_real() override;
   const char *func_name() const override { return "log"; }
   enum Functype functype() const override { return LOG_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_log2 final : public Item_dec_func {
@@ -1239,6 +1262,7 @@ class Item_func_log2 final : public Item_dec_func {
   Item_func_log2(const POS &pos, Item *a) : Item_dec_func(pos, a) {}
   double val_real() override;
   const char *func_name() const override { return "log2"; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_log10 final : public Item_dec_func {
@@ -1247,6 +1271,7 @@ class Item_func_log10 final : public Item_dec_func {
   double val_real() override;
   const char *func_name() const override { return "log10"; }
   enum Functype functype() const override { return LOG10_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_sqrt final : public Item_dec_func {
@@ -1255,6 +1280,7 @@ class Item_func_sqrt final : public Item_dec_func {
   double val_real() override;
   const char *func_name() const override { return "sqrt"; }
   enum Functype functype() const override { return SQRT_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_pow final : public Item_dec_func {
@@ -1262,6 +1288,7 @@ class Item_func_pow final : public Item_dec_func {
   Item_func_pow(const POS &pos, Item *a, Item *b) : Item_dec_func(pos, a, b) {}
   double val_real() override;
   const char *func_name() const override { return "pow"; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_acos final : public Item_dec_func {
@@ -1270,6 +1297,7 @@ class Item_func_acos final : public Item_dec_func {
   double val_real() override;
   const char *func_name() const override { return "acos"; }
   enum Functype functype() const override { return ACOS_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_asin final : public Item_dec_func {
@@ -1278,6 +1306,7 @@ class Item_func_asin final : public Item_dec_func {
   double val_real() override;
   const char *func_name() const override { return "asin"; }
   enum Functype functype() const override { return ASIN_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_atan final : public Item_dec_func {
@@ -1287,6 +1316,7 @@ class Item_func_atan final : public Item_dec_func {
   double val_real() override;
   const char *func_name() const override { return "atan"; }
   enum Functype functype() const override { return ATAN_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_cos final : public Item_dec_func {
@@ -1295,6 +1325,7 @@ class Item_func_cos final : public Item_dec_func {
   double val_real() override;
   const char *func_name() const override { return "cos"; }
   enum Functype functype() const override { return COS_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_sin final : public Item_dec_func {
@@ -1303,6 +1334,7 @@ class Item_func_sin final : public Item_dec_func {
   double val_real() override;
   const char *func_name() const override { return "sin"; }
   enum Functype functype() const override { return SIN_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_tan final : public Item_dec_func {
@@ -1311,6 +1343,7 @@ class Item_func_tan final : public Item_dec_func {
   double val_real() override;
   const char *func_name() const override { return "tan"; }
   enum Functype functype() const override { return TAN_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_cot final : public Item_dec_func {
@@ -1319,6 +1352,7 @@ class Item_func_cot final : public Item_dec_func {
   double val_real() override;
   const char *func_name() const override { return "cot"; }
   enum Functype functype() const override { return COT_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_int_val : public Item_func_num1 {
@@ -1339,6 +1373,7 @@ class Item_func_ceiling final : public Item_func_int_val {
   bool check_partition_func_processor(uchar *) override { return false; }
   bool check_function_as_value_generator(uchar *) override { return false; }
   enum Functype functype() const override { return CEILING_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_floor final : public Item_func_int_val {
@@ -1352,6 +1387,7 @@ class Item_func_floor final : public Item_func_int_val {
   bool check_partition_func_processor(uchar *) override { return false; }
   bool check_function_as_value_generator(uchar *) override { return false; }
   enum Functype functype() const override { return FLOOR_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 /* This handles round and truncate */
@@ -1375,6 +1411,7 @@ class Item_func_round final : public Item_func_num1 {
   enum Functype functype() const override {
     return truncate ? TRUNCATE_FUNC : ROUND_FUNC;
   }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_rand final : public Item_real_func {
@@ -1412,6 +1449,8 @@ class Item_func_rand final : public Item_real_func {
     return ((func_arg->source == VGS_GENERATED_COLUMN) ||
             (func_arg->source == VGS_CHECK_CONSTRAINT));
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 
  private:
   void seed_random(Item *val);
@@ -1533,6 +1572,7 @@ class Item_func_min final : public Item_func_min_max {
       : Item_func_min_max(pos, opt_list, true) {}
   const char *func_name() const override { return "least"; }
   enum Functype functype() const override { return LEAST_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_max final : public Item_func_min_max {
@@ -1541,6 +1581,7 @@ class Item_func_max final : public Item_func_min_max {
       : Item_func_min_max(pos, opt_list, false) {}
   const char *func_name() const override { return "greatest"; }
   enum Functype functype() const override { return GREATEST_FUNC; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 /**
@@ -1639,6 +1680,7 @@ class Item_func_length : public Item_int_func {
     max_length = 10;
     return false;
   }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_bit_length final : public Item_func_length {
@@ -1649,6 +1691,7 @@ class Item_func_bit_length final : public Item_func_length {
     return Item_func_length::val_int() * 8;
   }
   const char *func_name() const override { return "bit_length"; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_char_length final : public Item_int_func {
@@ -1663,6 +1706,9 @@ class Item_func_char_length final : public Item_int_func {
     max_length = 10;
     return Item_int_func::resolve_type(thd);
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
+  bool pq_copy_from(THD *thd, Query_block *select, Item *item) override;
 };
 
 class Item_func_coercibility final : public Item_int_func {
@@ -1677,6 +1723,8 @@ class Item_func_coercibility final : public Item_int_func {
     set_nullable(false);
     return Item_int_func::resolve_type(thd);
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_locate : public Item_int_func {
@@ -1695,6 +1743,8 @@ class Item_func_locate : public Item_int_func {
   bool resolve_type(THD *thd) override;
   void print(const THD *thd, String *str,
              enum_query_type query_type) const override;
+  Item *pq_clone(THD *thd, Query_block *select) override;
+  bool pq_copy_from(THD *thd, Query_block *select, Item *item) override;
 };
 
 class Item_func_instr final : public Item_func_locate {
@@ -1703,6 +1753,7 @@ class Item_func_instr final : public Item_func_locate {
       : Item_func_locate(pos, a, b) {}
 
   const char *func_name() const override { return "instr"; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_validate_password_strength final : public Item_int_func {
@@ -1731,6 +1782,7 @@ class Item_func_field final : public Item_int_func {
   longlong val_int() override;
   const char *func_name() const override { return "field"; }
   bool resolve_type(THD *thd) override;
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_ascii final : public Item_int_func {
@@ -1744,6 +1796,7 @@ class Item_func_ascii final : public Item_int_func {
     max_length = 3;
     return Item_int_func::resolve_type(thd);
   }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_ord final : public Item_int_func {
@@ -1753,6 +1806,7 @@ class Item_func_ord final : public Item_int_func {
   Item_func_ord(const POS &pos, Item *a) : Item_int_func(pos, a) {}
   longlong val_int() override;
   const char *func_name() const override { return "ord"; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_find_in_set final : public Item_int_func {
@@ -1770,6 +1824,7 @@ class Item_func_find_in_set final : public Item_int_func {
   const CHARSET_INFO *compare_collation() const override {
     return cmp_collation.collation;
   }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 /* Base class for all bit functions: '~', '|', '^', '&', '>>', '<<' */
@@ -1815,6 +1870,8 @@ class Item_func_bit : public Item_func {
       return get_time_from_string(ltime);
   }
 
+  bool pq_copy_from(THD *thd, Query_block *select, Item *item) override;
+
  private:
   /**
     @brief Performs the operation on integers to produce a result of type
@@ -1856,6 +1913,7 @@ class Item_func_bit_or final : public Item_func_bit_two_param {
   Item_func_bit_or(const POS &pos, Item *a, Item *b)
       : Item_func_bit_two_param(pos, a, b) {}
   const char *func_name() const override { return "|"; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 
  private:
   longlong int_op() override { return eval_int_op(std::bit_or<ulonglong>()); }
@@ -1869,6 +1927,7 @@ class Item_func_bit_and final : public Item_func_bit_two_param {
   Item_func_bit_and(const POS &pos, Item *a, Item *b)
       : Item_func_bit_two_param(pos, a, b) {}
   const char *func_name() const override { return "&"; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 
  private:
   longlong int_op() override { return eval_int_op(std::bit_and<ulonglong>()); }
@@ -1882,6 +1941,7 @@ class Item_func_bit_xor final : public Item_func_bit_two_param {
   Item_func_bit_xor(const POS &pos, Item *a, Item *b)
       : Item_func_bit_two_param(pos, a, b) {}
   const char *func_name() const override { return "^"; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 
  private:
   longlong int_op() override { return eval_int_op(std::bit_xor<ulonglong>()); }
@@ -1904,6 +1964,7 @@ class Item_func_bit_count final : public Item_int_func {
     max_length = MAX_BIGINT_WIDTH + 1;
     return false;
   }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_shift : public Item_func_bit {
@@ -1926,6 +1987,7 @@ class Item_func_shift_left final : public Item_func_shift {
   Item_func_shift_left(const POS &pos, Item *a, Item *b)
       : Item_func_shift(pos, a, b) {}
   const char *func_name() const override { return "<<"; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 
  private:
   longlong int_op() override { return eval_int_op<true>(); }
@@ -1937,6 +1999,7 @@ class Item_func_shift_right final : public Item_func_shift {
   Item_func_shift_right(const POS &pos, Item *a, Item *b)
       : Item_func_shift(pos, a, b) {}
   const char *func_name() const override { return ">>"; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 
  private:
   longlong int_op() override { return eval_int_op<false>(); }
@@ -1956,6 +2019,7 @@ class Item_func_bit_neg final : public Item_func_bit {
              enum_query_type query_type) const override {
     Item_func::print(thd, str, query_type);
   }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 
  private:
   longlong int_op() override;
@@ -1986,6 +2050,8 @@ class Item_func_last_insert_id final : public Item_int_func {
     func_arg->banned_function_name = func_name();
     return true;
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_benchmark final : public Item_int_func {
@@ -2019,6 +2085,8 @@ class Item_func_benchmark final : public Item_int_func {
     func_arg->banned_function_name = func_name();
     return true;
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 void item_func_sleep_init();
@@ -2053,6 +2121,7 @@ class Item_func_sleep final : public Item_int_func {
     return Item_int_func::resolve_type(thd);
   }
   longlong val_int() override;
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_udf_func : public Item_func {
@@ -2277,6 +2346,7 @@ class Item_func_get_lock final : public Item_int_func {
     return true;
   }
   uint decimal_precision() const override { return max_length; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_release_lock final : public Item_int_func {
@@ -2461,6 +2531,7 @@ class Item_func_can_access_table : public Item_int_func {
     set_nullable(true);
     return false;
   }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_can_access_user : public Item_int_func {
@@ -2562,6 +2633,8 @@ class Item_func_is_visible_dd_object : public Item_int_func {
     set_nullable(true);
     return false;
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_internal_table_rows : public Item_int_func {
@@ -2577,6 +2650,8 @@ class Item_func_internal_table_rows : public Item_int_func {
     null_on_null = false;
     return false;
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_internal_avg_row_length : public Item_int_func {
@@ -2592,6 +2667,8 @@ class Item_func_internal_avg_row_length : public Item_int_func {
     null_on_null = false;
     return false;
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_internal_data_length : public Item_int_func {
@@ -2607,6 +2684,8 @@ class Item_func_internal_data_length : public Item_int_func {
     null_on_null = false;
     return false;
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_internal_max_data_length : public Item_int_func {
@@ -2622,6 +2701,8 @@ class Item_func_internal_max_data_length : public Item_int_func {
     null_on_null = false;
     return false;
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_internal_index_length : public Item_int_func {
@@ -2637,6 +2718,8 @@ class Item_func_internal_index_length : public Item_int_func {
     null_on_null = false;
     return false;
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_internal_data_free : public Item_int_func {
@@ -2652,6 +2735,8 @@ class Item_func_internal_data_free : public Item_int_func {
     null_on_null = false;
     return false;
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_internal_auto_increment : public Item_int_func {
@@ -2667,6 +2752,8 @@ class Item_func_internal_auto_increment : public Item_int_func {
     null_on_null = false;
     return false;
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_internal_checksum : public Item_int_func {
@@ -2681,6 +2768,8 @@ class Item_func_internal_checksum : public Item_int_func {
     null_on_null = false;
     return false;
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 class Item_func_internal_keys_disabled : public Item_int_func {
@@ -3301,6 +3390,9 @@ class Item_func_get_user_var : public Item_var_func,
   Settable_routine_parameter *get_settable_routine_parameter() override {
     return this;
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
+  bool pq_copy_from(THD *thd, Query_block *select, Item *item) override;
 };
 
 /*
@@ -3425,6 +3517,9 @@ class Item_func_get_system_var final : public Item_var_func {
 
   void cleanup() override;
   bool bind(THD *thd);
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
+  bool pq_copy_from(THD *thd, Query_block *select, Item *item) override;
 };
 
 class JOIN;
@@ -3914,6 +4009,8 @@ class Item_func_found_rows final : public Item_int_func {
     func_arg->banned_function_name = func_name();
     return true;
   }
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 void uuid_short_init();
@@ -3949,6 +4046,8 @@ class Item_func_version final : public Item_static_string_func {
   explicit Item_func_version(const POS &pos);
 
   bool itemize(Parse_context *pc, Item **res) override;
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 /**
