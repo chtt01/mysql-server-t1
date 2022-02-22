@@ -2,6 +2,7 @@
 #define ITEM_XMLFUNC_INCLUDED
 
 /* Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -74,6 +75,7 @@ class Item_xml_str_func : public Item_str_func {
     if (!nodeset_func_permanent) nodeset_func = nullptr;
   }
   bool check_function_as_value_generator(uchar *) override { return false; }
+  enum Functype functype() const override { return XML_FUNC; }
 
  protected:
   /**

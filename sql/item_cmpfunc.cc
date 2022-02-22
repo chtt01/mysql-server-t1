@@ -1,4 +1,5 @@
 /* Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -6884,6 +6885,7 @@ bool Item_equal::fix_fields(THD *thd, Item **) {
   not_null_tables_cache = used_tables_cache = 0;
   bool nullable = false;
   while ((item = li++)) {
+    if (!item->fixed && item->fix_fields(thd, &item)) return true;
     used_tables_cache |= item->used_tables();
     not_null_tables_cache |= item->not_null_tables();
     nullable |= item->is_nullable();

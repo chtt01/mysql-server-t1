@@ -1,4 +1,5 @@
 /* Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -6555,10 +6556,13 @@ static int get_var_with_binlog(THD *thd, enum_sql_command sql_command,
   Binlog_user_var_event *user_var_event;
   user_var_entry *var_entry;
 
+  /* obtain user variables from leader thread */
+  THD *entry_thd = thd->is_worker() ? thd->pq_leader : thd;
+
   /* Protects thd->user_vars. */
-  mysql_mutex_lock(&thd->LOCK_thd_data);
-  var_entry = get_variable(thd, name, nullptr);
-  mysql_mutex_unlock(&thd->LOCK_thd_data);
+  mysql_mutex_lock(&entry_thd->LOCK_thd_data);
+  var_entry = get_variable(entry_thd, name, nullptr);
+  mysql_mutex_unlock(&entry_thd->LOCK_thd_data);
 
   *out_entry = var_entry;
 
@@ -6843,6 +6847,30 @@ bool Item_func_get_user_var::set_value(THD *thd, sp_rcontext * /*ctx*/,
   */
   return (!suv || suv->fix_fields(thd, it) || suv->check(false) ||
           suv->update());
+}
+
+bool Item_func_get_user_var::pq_copy_from(THD *thd, Query_block *select,
+                                          Item *item) {
+  if (Item_var_func::pq_copy_from(thd, select, this)) {
+    return true;
+  }
+  Item_func_get_user_var *orig_item =
+      dynamic_cast<Item_func_get_user_var *>(item);
+  assert(orig_item);
+
+  // obtain var_entry from leader
+#ifndef NDEBUG
+  THD *entry_thd = thd->pq_leader;
+  assert(entry_thd);
+  mysql_mutex_lock(&entry_thd->LOCK_thd_data);
+  var_entry = get_variable(entry_thd, name, NULL);
+  mysql_mutex_unlock(&entry_thd->LOCK_thd_data);
+  assert(var_entry && orig_item->var_entry);
+#endif
+  if (orig_item != nullptr) {
+    m_cached_result_type = orig_item->m_cached_result_type;
+  }
+  return false;
 }
 
 bool Item_user_var_as_out_param::fix_fields(THD *thd, Item **ref) {

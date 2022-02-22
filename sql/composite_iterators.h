@@ -2,6 +2,7 @@
 #define SQL_COMPOSITE_ITERATORS_INCLUDED
 
 /* Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -81,6 +82,8 @@ class FilterIterator final : public RowIterator {
 
   int Read() override;
 
+  int End() override { return m_source->End(); }
+
   void SetNullRowFlag(bool is_null_row) override {
     m_source->SetNullRowFlag(is_null_row);
   }
@@ -134,6 +137,8 @@ class LimitOffsetIterator final : public RowIterator {
   bool Init() override;
 
   int Read() override;
+
+  int End() override;
 
   void SetNullRowFlag(bool is_null_row) override {
     m_source->SetNullRowFlag(is_null_row);
@@ -205,6 +210,8 @@ class AggregateIterator final : public RowIterator {
 
   bool Init() override;
   int Read() override;
+  int End() override;
+
   void SetNullRowFlag(bool is_null_row) override {
     m_source->SetNullRowFlag(is_null_row);
   }
@@ -535,6 +542,13 @@ class MaterializeIterator final : public TableRowIterator {
   bool Init() override;
   int Read() override;
 
+  int End() override {
+    for (auto &qb : m_query_blocks_to_materialize) {
+      qb.subquery_iterator->End();
+    }
+    return thd()->is_worker() ? -1 : 1;
+  }
+
   void SetNullRowFlag(bool is_null_row) override {
     m_table_iterator->SetNullRowFlag(is_null_row);
   }
@@ -654,6 +668,10 @@ class StreamingIterator final : public TableRowIterator {
 
   int Read() override;
 
+  int End() override {
+    return m_subquery_iterator->End();
+  }
+
   void StartPSIBatchMode() override {
     m_subquery_iterator->StartPSIBatchMode();
   }
@@ -691,6 +709,8 @@ class TemptableAggregateIterator final : public TableRowIterator {
 
   bool Init() override;
   int Read() override;
+  int End() override;
+  
   void SetNullRowFlag(bool is_null_row) override {
     m_table_iterator->SetNullRowFlag(is_null_row);
   }
