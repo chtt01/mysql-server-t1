@@ -1,6 +1,7 @@
 /*****************************************************************************
 
 Copyright (c) 1997, 2021, Oracle and/or its affiliates.
+Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License, version 2.0, as published by the
@@ -150,6 +151,9 @@ class ReadView {
  public:
   ReadView();
   ~ReadView();
+
+  void Copy_readView(const ReadView &);
+
   /** Check whether transaction id is valid.
   @param[in]	id		transaction id to check
   @param[in]	name		table name */
@@ -274,8 +278,10 @@ class ReadView {
 
  private:
   // Disable copying
-  ReadView(const ReadView &);
   ReadView &operator=(const ReadView &);
+
+ public:
+  bool skip_view_list{false};
 
  private:
   /** The read should not see any transaction with trx id >= this

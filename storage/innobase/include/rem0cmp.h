@@ -1,6 +1,7 @@
 /*****************************************************************************
 
 Copyright (c) 1994, 2021, Oracle and/or its affiliates.
+Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License, version 2.0, as published by the
@@ -118,6 +119,10 @@ int cmp_dtuple_rec_with_gis_internal(const dtuple_t *dtuple, const rec_t *rec,
                                      const ulint *offsets,
                                      const dd::Spatial_reference_system *srs);
 
+int cmp_sec_dtuple_pri_rec_with_match(const dtuple_t *dtuple, const rec_t *rec,
+                                      const dict_index_t *index, const dict_index_t *clust_index,
+                                      const ulint *offsets, ulint n_cmp);
+                                      
 /** Compare a data tuple to a physical record.
 @param[in]	dtuple		data tuple
 @param[in]	rec		record

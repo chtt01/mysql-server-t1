@@ -1,6 +1,7 @@
 /*****************************************************************************
 
 Copyright (c) 1996, 2021, Oracle and/or its affiliates.
+Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License, version 2.0, as published by the
@@ -318,6 +319,12 @@ ReadView::ReadView()
       m_low_limit_no() {
   ut_d(::memset(&m_view_list, 0x0, sizeof(m_view_list)));
   ut_d(m_view_low_limit_no = 0);
+}
+
+void ReadView::Copy_readView(const ReadView &view) {
+  copy_prepare(view);
+  copy_complete();
+  m_creator_trx_id = view.m_creator_trx_id;
 }
 
 /**
@@ -721,8 +728,10 @@ void MVCC::view_close(ReadView *&view, bool own_mutex) {
 
     view->close();
 
-    UT_LIST_REMOVE(m_views, view);
-    UT_LIST_ADD_LAST(m_free, view);
+    if (!view->skip_view_list) {
+      UT_LIST_REMOVE(m_views, view);
+      UT_LIST_ADD_LAST(m_free, view);
+    }
 
     ut_ad(validate());
 

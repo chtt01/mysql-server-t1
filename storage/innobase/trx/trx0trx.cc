@@ -1,6 +1,7 @@
 /*****************************************************************************
 
 Copyright (c) 1996, 2021, Oracle and/or its affiliates.
+Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License, version 2.0, as published by the
@@ -2162,6 +2163,16 @@ ReadView *trx_assign_read_view(trx_t *trx) /*!< in/out: active transaction */
     trx_sys->mvcc->view_open(trx->read_view, trx);
   }
 
+  return (trx->read_view);
+}
+
+ReadView *trx_clone_read_view(trx_t *trx, ReadView *snapshot) /*!< in/out: active transaction */
+{
+  trx->read_view = UT_NEW_NOKEY(ReadView());
+  if (trx->read_view != nullptr) {
+    trx->read_view->Copy_readView(*snapshot);
+    trx->read_view->skip_view_list = true;
+  }
   return (trx->read_view);
 }
 
