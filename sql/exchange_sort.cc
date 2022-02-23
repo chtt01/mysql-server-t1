@@ -1,5 +1,5 @@
 /* Copyright (c) 2020, Oracle and/or its affiliates. All Rights Reserved.
-   Copyright (c) 2021, Huawei Technologies Co., Ltd.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -87,7 +87,7 @@ bool Exchange_sort::init() {
   /** init Sort_param */
   if (m_sort && m_sort->m_order) {
     /** generate sort_order */
-    int s_length = m_sort->make_sortorder(m_sort->m_order);
+    int s_length = m_sort->make_sortorder(m_sort->m_order, false);
     if (!s_length) return true;
     m_sort_param = new (thd->pq_mem_root) Sort_param();
     if (!m_sort_param) return true;
@@ -96,10 +96,9 @@ bool Exchange_sort::init() {
     TABLE *const table = get_table();
     m_sort_param->init_for_filesort(
         m_sort, make_array(m_sort->sortorder, s_length),
-        sortlength(thd, m_sort->sortorder, s_length), table, lanuch_workers(),
+        sortlength(thd, m_sort->sortorder, s_length), {table}, lanuch_workers(),
         false);
 
-    m_sort_param->sort_form = table;
     m_sort_param->local_sortorder =
         Bounds_checked_array<st_sort_field>(m_sort->sortorder, s_length);
 
@@ -109,7 +108,7 @@ bool Exchange_sort::init() {
     if (!m_tmp_key) return true;
   }
 
-  DBUG_ASSERT(m_sort_param || is_stable());
+  assert(m_sort_param || is_stable());
   if (m_sort_param) {
     int key_len = m_sort_param->max_record_length() + 1;
     keys[0] = new (thd->pq_mem_root) uchar[key_len];
@@ -122,8 +121,8 @@ bool Exchange_sort::init() {
   }
 
   if (is_stable()) {
-    DBUG_ASSERT(m_file->ht->db_type == DB_TYPE_INNODB);
-    DBUG_ASSERT(row_id_length == m_file->ref_length);
+    assert(m_file->ht->db_type == DB_TYPE_INNODB);
+    assert(row_id_length == m_file->ref_length);
     row_id[0] = new (thd->pq_mem_root) uchar[row_id_length];
     row_id[1] = new (thd->pq_mem_root) uchar[row_id_length];
 
@@ -213,7 +212,7 @@ mq_record_st *Exchange_sort::get_min_record() {
  * @id: the worker to be loaded
  */
 void Exchange_sort::load_group_records(int id) {
-  DBUG_ASSERT(0 <= id && id < lanuch_workers());
+  assert(0 <= id && id < lanuch_workers());
   mq_records_batch_st *rec_group = &m_record_groups[id];
   /** try to read message from MQ with a non-blocking mode */
   for (int i = rec_group->n_total; i < MAX_RECORD_STORE; i++) {
@@ -231,7 +230,7 @@ void Exchange_sort::load_group_records(int id) {
  *            otherwise, nowait = true
  */
 bool Exchange_sort::read_group(int id, bool nowait) {
-  DBUG_ASSERT(0 <= id && id < lanuch_workers());
+  assert(0 <= id && id < lanuch_workers());
   mq_records_batch_st *rec_group = &m_record_groups[id];
 
   /** the record has been fetched into records_batch */
@@ -265,7 +264,7 @@ bool Exchange_sort::read_group(int id, bool nowait) {
  */
 bool Exchange_sort::store_mq_record(mq_record_st *rec, uchar *data,
                                     uint32 msg_len) {
-  DBUG_ASSERT(rec && data);
+  assert(rec && data);
   THD *thd = get_thd();
   /**
    * Making a deep copy from data to rec. First, we determine whether rec has
@@ -284,7 +283,7 @@ bool Exchange_sort::store_mq_record(mq_record_st *rec, uchar *data,
     rec->m_buffer_len = new_buffer_len;
   }
 
-  DBUG_ASSERT(rec->m_data);
+  assert(rec->m_data);
   memcpy(rec->m_data, data, msg_len);
   rec->m_length = msg_len;
   return true;
@@ -305,8 +304,8 @@ err:
  */
 bool Exchange_sort::load_group_record(int id, int i, bool *completed,
                                       bool nowait) {
-  DBUG_ASSERT(0 <= id && id < lanuch_workers());
-  DBUG_ASSERT(0 <= i && i < MAX_RECORD_STORE);
+  assert(0 <= id && id < lanuch_workers());
+  assert(0 <= i && i < MAX_RECORD_STORE);
 
   MQueue_handle *handle = get_mq_handle(id);
   uchar *data = nullptr;
@@ -324,7 +323,7 @@ bool Exchange_sort::load_group_record(int id, int i, bool *completed,
     return false;
   }
 
-  DBUG_ASSERT(result == MQ_SUCCESS);
+  assert(result == MQ_SUCCESS);
   /** copy data into m_record_groups[id].records[i] */
   if (store_mq_record(rec_group->records[i], data, msg_len)) return true;
 
@@ -337,7 +336,7 @@ bool Exchange_sort::load_group_record(int id, int i, bool *completed,
  * @retval: true for success, and otherwise false
  */
 bool Exchange_sort::read_mq_record() {
-  DBUG_ASSERT(get_exchange_type() == EXCHANGE_SORT);
+  assert(get_exchange_type() == EXCHANGE_SORT);
   mq_record_st *record = get_min_record();
   if (!record) return false;
   return convert_mq_data_to_record(record->m_data, record->m_length);

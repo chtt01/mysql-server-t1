@@ -64,8 +64,8 @@ class Exchange {
   inline THD *get_thd() { return m_thd ? m_thd : current_thd; }
 
   inline MQueue_handle *get_mq_handle(uint32 i) {
-    DBUG_ASSERT(mqueue_handles);
-    DBUG_ASSERT(i < m_nqueues);
+    assert(mqueue_handles);
+    assert(i < m_nqueues);
     return mqueue_handles[i];
   }
 
