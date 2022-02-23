@@ -1,4 +1,5 @@
 /* Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -2719,7 +2720,9 @@ static bool tdc_wait_for_old_version(THD *thd, const char *db,
   bool res = false;
 
   mysql_mutex_lock(&LOCK_open);
-  if ((share = get_cached_table_share(db, table_name)) &&
+  // when current thread is PQ thread, no need to wait for flush tables. because flush
+  // thread is waiting PQ leader thread finish.
+  if (!thd->is_worker() && (share = get_cached_table_share(db, table_name)) &&
       share->has_old_version()) {
     struct timespec abstime;
     set_timespec(&abstime, wait_timeout);
@@ -3277,7 +3280,7 @@ retry_share : {
 
 share_found:
   if (!(flags & MYSQL_OPEN_IGNORE_FLUSH)) {
-    if (share->has_old_version()) {
+    if (!thd->is_worker() && share->has_old_version()) {
       /*
         We already have an MDL lock. But we have encountered an old
         version of table in the table definition cache which is possible
@@ -7921,10 +7924,16 @@ Field *find_field_in_tables(THD *thd, Item_ident *item, TABLE_LIST *first_table,
 
   for (cur_table = first_table; cur_table != last_table;
        cur_table = cur_table->next_name_resolution_table) {
-    Field *cur_field = find_field_in_table_ref(
+    Field *cur_field = nullptr;
+    if (thd->parallel_exec && item->m_tableno != cur_table->m_tableno) {
+      continue;
+    } else {
+        cur_field = find_field_in_table_ref(
         thd, cur_table, name, length, item->item_name.ptr(), db, table_name,
         ref, want_privilege, allow_rowid, &field_index, register_tree_change,
         &actual_table);
+    }
+
     if ((cur_field == nullptr && thd->is_error()) || cur_field == WRONG_GRANT)
       return nullptr;
 
@@ -8900,7 +8909,7 @@ bool setup_fields(THD *thd, ulong want_privilege, bool allow_sum_func,
                   bool split_sum_funcs, bool column_update,
                   const mem_root_deque<Item *> *typed_items,
                   mem_root_deque<Item *> *fields,
-                  Ref_item_array ref_item_array) {
+                  Ref_item_array ref_item_array, bool skip_check_grant) {
   DBUG_TRACE;
 
   Query_block *const select = thd->lex->current_query_block();
@@ -8913,12 +8922,14 @@ bool setup_fields(THD *thd, ulong want_privilege, bool allow_sum_func,
   assert(want_privilege == 0 || want_privilege == SELECT_ACL ||
          want_privilege == INSERT_ACL || want_privilege == UPDATE_ACL);
   assert(!(column_update && (want_privilege & SELECT_ACL)));
-  if (want_privilege & SELECT_ACL)
+  if (!skip_check_grant) {
+    if (want_privilege & SELECT_ACL)
     thd->mark_used_columns = MARK_COLUMNS_READ;
   else if (want_privilege & (INSERT_ACL | UPDATE_ACL) && !column_update)
     thd->mark_used_columns = MARK_COLUMNS_WRITE;
   else
     thd->mark_used_columns = MARK_COLUMNS_NONE;
+  }
 
   DBUG_PRINT("info", ("thd->mark_used_columns: %d", thd->mark_used_columns));
   if (allow_sum_func)

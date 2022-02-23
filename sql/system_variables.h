@@ -1,5 +1,5 @@
 /* Copyright (c) 2015, 2021, Oracle and/or its affiliates.
-   Copyright (c) 2021, Huawei Technologies Co., Ltd.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -515,6 +515,8 @@ struct System_status_var {
   */
   double last_query_cost;
   ulonglong last_query_partial_plans;
+  bool reset{false};
+  bool pq_merge_status(System_status_var worker);
 };
 
 /*

@@ -2,6 +2,7 @@
 #define LEX_INCLUDED
 
 /* Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -859,6 +860,8 @@ static const SYMBOL symbols[] = {
     /*
       Insert new optimizer hint keywords after that commentary:
     */
+    {SYM_H("PQ", PQ_HINT)},
+    {SYM_H("NO_PQ", NO_PQ_HINT)},
     {SYM_H("BKA", BKA_HINT)},
     {SYM_H("BNL", BNL_HINT)},
     {SYM_H("DUPSWEEDOUT", DUPSWEEDOUT_HINT)},

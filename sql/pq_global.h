@@ -1,6 +1,7 @@
-#ifndef SQL_RECORDS_H
-#define SQL_RECORDS_H
-/* Copyright (c) 2008, 2021, Oracle and/or its affiliates.
+#ifndef MYSQL_PQ_SQL_GLOBAL_H
+#define MYSQL_PQ_SQL_GLOBAL_H
+
+/* Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
    Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
@@ -23,34 +24,24 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
 
-#include <sys/types.h>
+#include <iostream>
 #include <memory>
-#include <string>
-
+#include "my_compiler.h"
 #include "my_alloc.h"
-#include "my_base.h"
-#include "sql/basic_row_iterators.h"
-#include "sql/composite_iterators.h"
-#include "sql/ref_row_iterators.h"
-#include "sql/row_iterator.h"
-#include "sql/sorting_iterator.h"
 
-class QEP_TAB;
-class THD;
-struct AccessPath;
-struct TABLE;
+#define TIME_THOUSAND 1000
+#define TIME_MILLION  1000000
+#define TIME_BILLION  1000000000
 
-AccessPath *create_table_access_path(THD *thd, TABLE *table, QEP_TAB *qep_tab,
-                                     bool count_examined_rows, bool *pq_replace_path = nullptr);
+template<typename T>
+T atomic_add(T &value, T n) {
+  return __sync_fetch_and_add(&value, n);
+}
 
-/**
-  Creates an iterator for the given table, then calls Init() on the resulting
-  iterator. Unlike create_table_iterator(), this can create iterators for sort
-  buffer results (which are set in the TABLE object during query execution).
-  Returns nullptr on failure.
- */
-unique_ptr_destroy_only<RowIterator> init_table_iterator(
-    THD *thd, TABLE *table, QEP_TAB *qep_tab, bool ignore_not_found_rows,
-    bool count_examined_rows);
+template<typename T>
+T atomic_sub(T &value, T n) {
+  return __sync_fetch_and_sub(&value, n);
+}
 
-#endif /* SQL_RECORDS_H */
+#endif //MYSQL_PQ_SQL_GLOBAL_H
+

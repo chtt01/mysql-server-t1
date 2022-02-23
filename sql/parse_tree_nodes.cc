@@ -1,4 +1,5 @@
 /* Copyright (c) 2013, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -1742,6 +1743,8 @@ bool PT_create_table_default_collation::contextualize(
 
 bool PT_locking_clause::contextualize(Parse_context *pc) {
   LEX *lex = pc->thd->lex;
+
+  pc->thd->locking_clause = true;
 
   if (lex->is_explain()) return false;
 

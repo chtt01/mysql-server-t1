@@ -883,7 +883,7 @@ static Sys_var_bool Sys_windowing_use_high_precision(
     HINT_UPDATEABLE SESSION_VAR(windowing_use_high_precision),
     CMD_LINE(OPT_ARG), DEFAULT(true));
 
-#ifndef DBUG_OFF
+#ifndef NDEBUG
 extern bool dbug_pq_worker_stall;
 
 static Sys_var_bool Sys_Debug_pq_worker_stall(
