@@ -1,4 +1,5 @@
 /* Copyright (c) 2002, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -403,6 +404,9 @@ class Statement_backup {
 
     m_query_string = thd->query();
     thd->set_query(stmt->m_query_string);
+    if (thd->lex != nullptr) {
+      thd->lex->in_execute_ps = true;
+    }
 
     m_safe_to_display = thd->safe_to_display();
 
@@ -429,6 +433,7 @@ class Statement_backup {
 
     stmt->m_query_string = thd->query();
     thd->set_query(m_query_string);
+    thd->lex->in_execute_ps = false;
 
     return;
   }

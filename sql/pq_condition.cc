@@ -1,5 +1,5 @@
 /* Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
-   Copyright (c) 2021, Huawei Technologies Co., Ltd.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -159,7 +159,7 @@ bool check_pq_support_fieldtype(Item *item, bool having);
 bool check_pq_support_fieldtype_of_field_item(Item *item,
                                               bool MY_ATTRIBUTE((unused))) {
   Field *field = static_cast<Item_field *>(item)->field;
-  DBUG_ASSERT(field);
+  assert(field);
   // not supported for generated column
   if (field && (field->is_gcol() || pq_not_support_datatype(field->type()))) {
     return false;
@@ -170,7 +170,7 @@ bool check_pq_support_fieldtype_of_field_item(Item *item,
 
 bool check_pq_support_fieldtype_of_func_item(Item *item, bool having) {
   Item_func *func = static_cast<Item_func *>(item);
-  DBUG_ASSERT(func);
+  assert(func);
 
   // check func type
   if (pq_not_support_func(func)) {
@@ -198,7 +198,7 @@ bool check_pq_support_fieldtype_of_func_item(Item *item, bool having) {
   // the case of Item_equal
   if (func->functype() == Item_func::MULT_EQUAL_FUNC) {
     Item_equal *item_equal = down_cast<Item_equal *>(item);
-    DBUG_ASSERT(item_equal);
+    assert(item_equal);
 
     // check const_item
     Item *const_item = item_equal->get_const();
@@ -224,7 +224,7 @@ bool check_pq_support_fieldtype_of_func_item(Item *item, bool having) {
 
 bool check_pq_support_fieldtype_of_cond_item(Item *item, bool having) {
   Item_cond *cond = static_cast<Item_cond *>(item);
-  DBUG_ASSERT(cond);
+  assert(cond);
 
   if (pq_not_support_functype(cond->functype())) {
     return false;
@@ -257,7 +257,7 @@ bool check_pq_support_fieldtype_of_sum_func_item(Item *item, bool having) {
     return false;
   }
 
-  for (uint i = 0; i < sum->get_arg_count(); i++) {
+  for (uint i = 0; i < sum->argument_count(); i++) {
     if (!check_pq_support_fieldtype(sum->get_arg(i), having)) {
       return false;
     }
@@ -319,7 +319,7 @@ PQ_CHECK_ITEM_TYPE g_check_item_type[] = {
     {Item::REAL_ITEM, nullptr},
     {Item::NULL_ITEM, nullptr},
     {Item::VARBIN_ITEM, nullptr},
-    {Item::COPY_STR_ITEM, nullptr},
+    {Item::METADATA_COPY_ITEM, nullptr},
     {Item::FIELD_AVG_ITEM, nullptr},
     {Item::DEFAULT_VALUE_ITEM, nullptr},
     {Item::PROC_ITEM, nullptr},
@@ -339,7 +339,6 @@ PQ_CHECK_ITEM_TYPE g_check_item_type[] = {
     {Item::XPATH_NODESET_CMP, nullptr},
     {Item::VIEW_FIXER_ITEM, nullptr},
     {Item::FIELD_BIT_ITEM, nullptr},
-    {Item::NULL_RESULT_ITEM, nullptr},
     {Item::VALUES_COLUMN_ITEM, nullptr}};
 
 /**
@@ -394,7 +393,7 @@ bool check_pq_sort_aggregation(const ORDER_with_src &order_list) {
  *    ture: otherwise
  */
 bool pq_create_result_fields(THD *thd, Temp_table_param *param,
-                             List<Item> &fields, bool save_sum_fields,
+                             mem_root_deque<Item *> &fields, bool save_sum_fields,
                              ulonglong select_options, MEM_ROOT *root) {
   const bool not_all_columns = !(select_options & TMP_TABLE_ALL_COLUMNS);
   long hidden_field_count = param->hidden_field_count;
@@ -418,20 +417,11 @@ bool pq_create_result_fields(THD *thd, Temp_table_param *param,
   }
 
   copy_func->reserve(copy_func_count);
-  List_iterator_fast<Item> li(fields);
-  Item *item;
-  while ((item = li++)) {
+  for (Item *item : fields) {
     Field *new_field = nullptr;
     Item::Type type = item->type();
     const bool is_sum_func =
         type == Item::SUM_FUNC_ITEM && !item->m_is_window_function;
-
-    if (type == Item::COPY_STR_ITEM) {
-      item = ((Item_copy *)item)->get_item();
-      if (item != nullptr) {
-        type = item->type();
-      }
-    }
 
     if (not_all_columns && item != nullptr) {
       if (item->has_aggregation() && type != Item::SUM_FUNC_ITEM) {
@@ -482,7 +472,7 @@ bool pq_create_result_fields(THD *thd, Temp_table_param *param,
       }
 
       if (new_field == nullptr) {
-        DBUG_ASSERT(thd->is_fatal_error());
+        assert(thd->is_fatal_error());
         return true;
       }
 
@@ -497,23 +487,13 @@ bool pq_create_result_fields(THD *thd, Temp_table_param *param,
     }
   }  // end of while ((item=li++)).
 
-  List_iterator_fast<Item> it(fields);
   Field *result_field = nullptr;
 
-  while ((item = it++)) {
+  for (Item *item : fields) {
     // c1: const_item will not produce field in the first rewritten table
     if (item->const_item() || item->basic_const_item()) {
       continue;
     }
-
-    // c2: check Item_copy. In the original execution plan, const_item will be
-    // transformed into Item_copy in the rewritten-table's slice.
-    if (item->type() == Item::COPY_STR_ITEM) {
-      Item *orig_item = down_cast<Item_copy *>(item)->get_item();
-      DBUG_ASSERT(orig_item);
-      if (orig_item->const_item() || orig_item->basic_const_item()) continue;
-    }
-    // note that: the above item will not be pushed into worker
 
     if (item->has_aggregation() && item->type() != Item::SUM_FUNC_ITEM) {
       if (item->type() == Item::SUBSELECT_ITEM ||
@@ -565,13 +545,7 @@ bool check_pq_select_result_fields(JOIN *join) {
 
   bool suit_for_parallel = false;
 
-  bool base_slice = (join->last_slice_before_pq == REF_SLICE_SAVED_BASE);
-  List<Item> tmp_all_fields =
-      base_slice ? join->all_fields
-                 : join->tmp_all_fields0[join->last_slice_before_pq];
-  List<Item> tmp_field_lists =
-      base_slice ? join->fields_list
-                 : join->tmp_fields_list0[join->last_slice_before_pq];
+  mem_root_deque<Item *> *tmp_all_fields = join->fields;
 
   join->tmp_table_param->pq_copy(join->saved_tmp_table_param);
   join->tmp_table_param->copy_fields.clear();
@@ -589,28 +563,26 @@ bool check_pq_select_result_fields(JOIN *join) {
   }
 
   tmp_param->m_window_frame_buffer = true;
-  List<Item> tmplist(tmp_all_fields, join->thd->mem_root);
-  tmp_param->hidden_field_count =
-      tmp_all_fields.elements - tmp_field_lists.elements;
+  mem_root_deque<Item *> tmplist(*tmp_all_fields);
+  tmp_param->hidden_field_count = CountHiddenFields(*tmp_all_fields);
 
   // create_tmp_table may change the original item's result_field, hence
   // we must save it before.
   std::vector<Field *> saved_result_field(tmplist.size(), nullptr);
-  List_iterator_fast<Item> it(tmp_all_fields);
-  Item *tmp_item = nullptr;
-  int i;
 
-  for (i = 0, tmp_item = it++; tmp_item; i++, tmp_item = it++) {
+  int i = 0;
+  for (Item *tmp_item : *tmp_all_fields) {
     if (tmp_item->type() == Item::FIELD_ITEM ||
         tmp_item->type() == Item::DEFAULT_VALUE_ITEM) {
       saved_result_field[i] = down_cast<Item_field *>(tmp_item)->result_field;
     } else {
       saved_result_field[i] = tmp_item->get_result_field();
     }
+    i++;
   }
 
   if (pq_create_result_fields(join->thd, tmp_param, tmplist, true,
-                              join->select_lex->active_options(),
+                              join->query_block->active_options(),
                               pq_check_root)) {
     suit_for_parallel = false;
   } else {
@@ -618,15 +590,15 @@ bool check_pq_select_result_fields(JOIN *join) {
   }
 
   // restore result_field
-  it.rewind();
-
-  for (i = 0, tmp_item = it++; tmp_item; i++, tmp_item = it++) {
+  i = 0;
+  for (Item *tmp_item : *tmp_all_fields) {
     if (tmp_item->type() == Item::FIELD_ITEM ||
         tmp_item->type() == Item::DEFAULT_VALUE_ITEM) {
       down_cast<Item_field *>(tmp_item)->result_field = saved_result_field[i];
     } else {
       tmp_item->set_result_field(saved_result_field[i]);
     }
+    i++;
   }
 
   // free the memory
@@ -646,16 +618,14 @@ bool check_pq_select_result_fields(JOIN *join) {
  */
 bool check_pq_select_fields(JOIN *join) {
   // check whether contains blob, text, json and geometry field
-  List_iterator_fast<Item> it(join->all_fields);
-  Item *item = nullptr;
-  while ((item = it++)) {
+  for (Item *item : *join->query_block_fields) {
     if (!check_pq_support_fieldtype(item, false)) {
       return false;
     }
   }
 
-  Item *n_where_cond = join->select_lex->where_cond();
-  Item *n_having_cond = join->select_lex->having_cond();
+  Item *n_where_cond = join->query_block->where_cond();
+  Item *n_having_cond = join->query_block->having_cond();
 
   if (n_where_cond && !check_pq_support_fieldtype(n_where_cond, false)) {
     return false;
@@ -743,7 +713,7 @@ bool suite_for_parallel_query(LEX *lex) {
   return true;
 }
 
-bool suite_for_parallel_query(SELECT_LEX_UNIT *unit) {
+bool suite_for_parallel_query(Query_expression *unit) {
   if (!unit->is_simple()) {
     return false;
   }
@@ -773,11 +743,11 @@ bool suite_for_parallel_query(TABLE_LIST *tbl_list) {
   return true;
 }
 
-bool suite_for_parallel_query(SELECT_LEX *select) {
-  if (select->first_inner_unit() !=
+bool suite_for_parallel_query(Query_block *select) {
+  if (select->first_inner_query_expression() !=
           nullptr ||  // nesting subquery, including view〝derived
                       // table〝subquery condition and so on.
-      select->outer_select() != nullptr ||  // nested subquery
+      select->outer_query_block() != nullptr ||  // nested subquery
       select->is_distinct() ||              // select distinct
       select->saved_windows_elements) {     // windows function
     return false;
@@ -803,8 +773,8 @@ bool suite_for_parallel_query(JOIN *join) {
   if ((join->best_read < join->thd->variables.parallel_cost_threshold) ||
       (join->primary_tables == join->const_tables) ||
       (join->select_distinct || join->select_count) ||
-      (join->all_fields.elements > MAX_FIELDS) ||
-      (join->rollup.state != ROLLUP::State::STATE_NONE) ||
+      (join->query_block_fields->size() > MAX_FIELDS) ||
+      (join->rollup_state != JOIN::RollupState::NONE) ||
       (join->zero_result_cause != nullptr)) {
     return false;
   }
@@ -875,7 +845,7 @@ bool check_pq_running_threads(uint dop, ulong timeout_ms) {
 
 class PQCheck {
  public:
-  explicit PQCheck(SELECT_LEX *select_lex_arg) : select_lex(select_lex_arg) {}
+  explicit PQCheck(Query_block *select_lex_arg) : select_lex(select_lex_arg) {}
 
   virtual ~PQCheck() {}
 
@@ -890,12 +860,12 @@ class PQCheck {
   enum_explain_type select_type{};
 
  private:
-  SELECT_LEX *select_lex;
+  Query_block *select_lex;
 };
 
 class PlanReadyPQCheck : public PQCheck {
  public:
-  explicit PlanReadyPQCheck(SELECT_LEX *select_lex_arg)
+  explicit PlanReadyPQCheck(Query_block *select_lex_arg)
       : PQCheck(select_lex_arg), join(select_lex_arg->join) {}
 
   ~PlanReadyPQCheck() {}
@@ -957,7 +927,7 @@ bool PlanReadyPQCheck::suite_for_parallel_query() {
   return true;
 }
 
-bool check_select_id_and_type(SELECT_LEX *select_lex) {
+bool check_select_id_and_type(Query_block *select_lex) {
   JOIN *join = select_lex->join;
   std::unique_ptr<PQCheck> check;
   bool ret = false;
@@ -981,7 +951,7 @@ bool check_select_id_and_type(SELECT_LEX *select_lex) {
     }
 
     default:
-      DBUG_ASSERT(0);
+      assert(0);
   }
 
 END:
@@ -1019,7 +989,7 @@ bool check_pq_conditions(THD *thd) {
     return false;
   }
 
-  SELECT_LEX *select = thd->lex->unit->first_select();
+  Query_block *select = thd->lex->unit->first_query_block();
   if (!suite_for_parallel_query(select)) {
     return false;
   }

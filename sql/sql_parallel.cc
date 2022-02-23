@@ -1,5 +1,5 @@
 /* Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
-   Copyright (c) 2021, Huawei Technologies Co., Ltd.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -104,12 +104,12 @@ bool MQ_record_gather::mq_scan_init(Filesort *sort, int workers,
  */
 
 bool MQ_record_gather::mq_scan_next() {
-  DBUG_ASSERT(m_exchange);
+  assert(m_exchange);
   return (m_exchange->read_mq_record());
 }
 
 void MQ_record_gather::mq_scan_end() {
-  DBUG_ASSERT(m_exchange);
+  assert(m_exchange);
   m_exchange->cleanup();
 }
 
@@ -142,7 +142,7 @@ PQ_worker_manager::~PQ_worker_manager() {
 
 bool PQ_worker_manager::wait_for_status(THD *leader MY_ATTRIBUTE((unused)),
                                         uint status) {
-  DBUG_ASSERT(leader == current_thd);
+  assert(leader == current_thd);
   mysql_mutex_lock(&m_mutex);
   while (!(((unsigned int)this->m_status) & status)) {
     struct timespec abstime;
@@ -185,18 +185,17 @@ Gather_operator::~Gather_operator() { mysql_mutex_destroy(&lock_stmt_da); }
  * replace the parameter item of Aggr. with the generated item in rewritten tab.
  *
  */
-void pq_replace_avg_func(THD *thd, SELECT_LEX *select MY_ATTRIBUTE((unused)),
-                         List<Item> *fields,
+void pq_replace_avg_func(THD *thd, Query_block *select MY_ATTRIBUTE((unused)),
+                         mem_root_deque<Item *> *fields,
                          nesting_map select_nest_level MY_ATTRIBUTE((unused))) {
-  Item *item = nullptr;
-  List_iterator_fast<Item> lm(*fields);
-  for (size_t i = 0; (item = lm++); i++) {
+  size_t i = 0;
+  for (Item *item : *fields) {
     if (item->real_item()->type() == Item::SUM_FUNC_ITEM) {
       Item_sum *item_old = (Item_sum *)(item->real_item());
-      DBUG_ASSERT(item_old);
+      assert(item_old);
       if (item_old->sum_func() == Item_sum::AVG_FUNC) {
         Item_sum_avg *item_avg = dynamic_cast<Item_sum_avg *>(item_old);
-        DBUG_ASSERT(item_avg);
+        assert(item_avg);
         item_avg->pq_avg_type = PQ_LEADER;
         item_avg->resolve_type(thd);
       }
@@ -207,7 +206,7 @@ void pq_replace_avg_func(THD *thd, SELECT_LEX *select MY_ATTRIBUTE((unused)),
       item_avg->pq_avg_type = PQ_LEADER;
       item_avg_field->pq_avg_type = PQ_LEADER;
       item_avg->resolve_type(thd);
-      fields->replace(i, item_avg);
+      (*fields)[i] = item_avg;
 
     } else if (item->real_item()->type() == Item::FIELD_ITEM) {
       Item_field *item_field = dynamic_cast<Item_field *>(item->real_item());
@@ -216,9 +215,10 @@ void pq_replace_avg_func(THD *thd, SELECT_LEX *select MY_ATTRIBUTE((unused)),
         Item_sum_avg *item_avg = down_cast<Item_sum_avg *>(item_sum);
         item_avg->pq_avg_type = PQ_LEADER;
         item_avg->resolve_type(thd);
-        fields->replace(i, item_avg);
+        (*fields)[i] = item_avg;
       }
     }
+    i++;
   }
 }
 
@@ -231,29 +231,30 @@ void pq_replace_avg_func(THD *thd, SELECT_LEX *select MY_ATTRIBUTE((unused)),
  * @fields_new: PQ leader temp table's fields list
  *
  */
-bool pq_build_sum_funcs(THD *thd, SELECT_LEX *select, Ref_item_array &ref_ptr,
-                        List<Item> &all_fields, uint elements,
+bool pq_build_sum_funcs(THD *thd, Query_block *select, Ref_item_array &ref_ptr,
+                        mem_root_deque<Item *> &fields, uint elements,
                         nesting_map select_nest_level) {
   uint saved_allow_sum_funcs = thd->lex->allow_sum_func;
   thd->lex->allow_sum_func |= select_nest_level;
-  uint border = all_fields.elements - elements;
+  uint border = fields.size() - elements;
 
-  Item *item = nullptr;
-  List_iterator_fast<Item> lm(all_fields);
-  for (size_t i = 0; (item = lm++); i++) {
+  size_t i = 0;
+  for (Item *item : fields) {
     if (item->real_item()->type() == Item::FIELD_ITEM) {
       Item_field *item_field = dynamic_cast<Item_field *>(item);
 
       if (item_field == nullptr || item_field->field == nullptr ||
-          item_field->field->item_sum_ref == nullptr)
-        continue;
-
+          item_field->field->item_sum_ref == nullptr) {
+            i++;
+            continue;
+          }
+        
       Item_sum *item_ref = item_field->field->item_sum_ref;
 
       if (item_ref->type() == Item::SUM_FUNC_ITEM) {
         Item_sum *sum_func =
             item_ref->pq_rebuild_sum_func(thd, select, item_field);
-        DBUG_ASSERT(DBUG_EVALUATE_IF("skip_pq_clone_check", true, false) ||
+        assert(DBUG_EVALUATE_IF("skip_pq_clone_check", true, false) ||
                     sum_func);
         if (!sum_func) {
           thd->lex->allow_sum_func = saved_allow_sum_funcs;
@@ -261,11 +262,12 @@ bool pq_build_sum_funcs(THD *thd, SELECT_LEX *select, Ref_item_array &ref_ptr,
         }
         sum_func->fix_fields(thd, nullptr);
         item_field->field->item_sum_ref = sum_func;
-        all_fields.replace(i, sum_func);
-        ref_ptr[((i < border) ? all_fields.elements - i - 1 : i - border)] =
+        fields[i] = sum_func;
+        ref_ptr[((i < border) ? fields.size() - i - 1 : i - border)] =
             sum_func;
       }
     }
+    i++;
   }
   thd->lex->allow_sum_func = saved_allow_sum_funcs;
   return false;
@@ -312,7 +314,7 @@ err:
  */
 Gather_operator *make_pq_gather_operator(JOIN *join, QEP_TAB *tab, uint dop) {
   THD *thd = current_thd;
-  DBUG_ASSERT(thd == join->thd && thd->parallel_exec);
+  assert(thd == join->thd && thd->parallel_exec);
   JOIN *template_join = nullptr;
   Gather_operator *gather_opr = nullptr;
 
@@ -346,9 +348,9 @@ Gather_operator *make_pq_gather_operator(JOIN *join, QEP_TAB *tab, uint dop) {
   gather_opr->m_template_join = template_join;
   gather_opr->m_tab = tab;
   gather_opr->m_table = tab->table();
-#ifndef DBUG_OFF
+#ifndef NDEBUG
   gather_opr->m_code_state = my_thread_var_dbug();
-  DBUG_ASSERT(gather_opr->m_code_state && *(gather_opr->m_code_state));
+  assert(gather_opr->m_code_state && *(gather_opr->m_code_state));
 #endif
   template_join->thd->push_diagnostics_area(&gather_opr->m_stmt_da);
 
@@ -388,9 +390,9 @@ err:
 bool Gather_operator::init() {
   int error = 0;
   THD *thd = current_thd;
-  DBUG_ASSERT(thd == m_table->in_use);
+  assert(thd == m_table->in_use);
   int tab_idx = m_template_join->pq_tab_idx;
-  DBUG_ASSERT(tab_idx >= (int)m_template_join->const_tables &&
+  assert(tab_idx >= (int)m_template_join->const_tables &&
               m_template_join->qep_tab[tab_idx].do_parallel_scan);
 
   QEP_TAB *tab = &m_template_join->qep_tab[tab_idx];
@@ -412,7 +414,7 @@ bool Gather_operator::init() {
       table_scan = true;
       break;
     case JT_RANGE:
-      DBUG_ASSERT(m_tab->quick());
+      assert(m_tab->quick());
       keyno = m_tab->quick()->index;
       break;
     case JT_REF:
@@ -428,7 +430,7 @@ bool Gather_operator::init() {
       keyno = m_tab->index();
       break;
     default:
-      DBUG_ASSERT(0);
+      assert(0);
       keyno = m_table->s->primary_key;
   }
 
@@ -510,8 +512,7 @@ static void restore_leader_plan(JOIN *join) {
   join->pq_stable_sort = false;
   join->qep_tab = join->qep_tab0;
   join->ref_items = join->ref_items0;
-  join->tmp_all_fields = join->tmp_all_fields0;
-  join->tmp_fields_list = join->tmp_fields_list0;
+  join->tmp_fields = join->tmp_fields0;
 }
 
 /**
@@ -534,8 +535,8 @@ PQ_exec_status make_pq_leader_plan(THD *thd) {
   }
 
   uint dop = thd->pq_dop;
-  JOIN *join = thd->lex->unit->first_select()->join;
-  List<Item> *fields_old = join->fields;
+  JOIN *join = thd->lex->unit->first_query_block()->join;
+  mem_root_deque<Item *> *fields_old = join->fields;
   QEP_TAB *tab = nullptr;
   Gather_operator *gather = nullptr;
   char buff[64] = {0};
@@ -545,7 +546,7 @@ PQ_exec_status make_pq_leader_plan(THD *thd) {
   Opt_trace_context *const trace = &thd->opt_trace;
   Opt_trace_object trace_wrapper(trace);
   Opt_trace_object trace_exec(trace, "make_parallel_query_plan");
-  trace_exec.add_select_number(join->select_lex->select_number);
+  trace_exec.add_select_number(join->query_block->select_number);
   Opt_trace_array trace_detail(trace, "detail");
 
   MEM_ROOT *saved_mem_root = thd->mem_root;
@@ -568,14 +569,14 @@ PQ_exec_status make_pq_leader_plan(THD *thd) {
 
     join->alloc_qep1(join->tables);
     join->alloc_indirection_slices1();
-    join->ref_items1[REF_SLICE_ACTIVE] = join->select_lex->base_ref_items;
+    join->ref_items1[REF_SLICE_ACTIVE] = join->query_block->base_ref_items;
 
     join->pq_stable_sort = pq_check_stable_sort(join, tab_idx);
     gather = make_pq_gather_operator(join, &join->qep_tab[tab_idx], dop);
     if (!gather || DBUG_EVALUATE_IF("pq_leader_abort1", true, false)) {
       goto err;
     }
-    DBUG_ASSERT(gather->m_template_join->thd->pq_leader);
+    assert(gather->m_template_join->thd->pq_leader);
     tab = &join->qep_tab[tab_idx];
     tab->set_old_table(tab->table());
     // replace parallel scan table with a tmp table
@@ -588,7 +589,7 @@ PQ_exec_status make_pq_leader_plan(THD *thd) {
     join->old_tables = join->tables;
     join->tables = join->primary_tables + join->tmp_tables;
 
-    DBUG_ASSERT(tab->table()->s->table_category == TABLE_CATEGORY_TEMPORARY);
+    assert(tab->table()->s->table_category == TABLE_CATEGORY_TEMPORARY);
     tab->set_type(JT_ALL);
     tab->gather = gather;
     tab->check_weed_out_table = nullptr;
@@ -598,8 +599,7 @@ PQ_exec_status make_pq_leader_plan(THD *thd) {
     TABLE_LIST *tbl = new (thd->pq_mem_root) TABLE_LIST;
     if (!tbl) goto err;
 
-    tab->iterator.reset();
-    tbl->select_lex = join->select_lex;
+    tbl->query_block = join->query_block;
     tbl->table_name = (char *)thd->memdup(tab->table()->s->table_name.str,
                                           tab->table()->s->table_name.length);
     tbl->table_name_length = tab->table()->s->table_name.length;
@@ -607,13 +607,14 @@ PQ_exec_status make_pq_leader_plan(THD *thd) {
                                   tab->table()->s->db.length);
     tbl->db_length = tab->table()->s->db.length;
     snprintf(buff, 64, "<gather%d>",
-             gather->m_template_join->select_lex->select_number);
+             gather->m_template_join->query_block->select_number);
     tbl->alias = (char *)thd->memdup(buff, 64);
     if (!tbl->table_name || !tbl->db || !tbl->alias) goto err;
 
     tab->table_ref = tbl;
+    tbl->set_tableno(tab_idx);
     tab->table()->pos_in_table_list = tbl;
-    join->select_lex->table_list.link_in_list(tbl, &tbl->next_local);
+    join->query_block->table_list.link_in_list(tbl, &tbl->next_local);
     TABLE_REF *ref = new (thd->pq_mem_root) TABLE_REF();
     if (!ref) goto err;
 
@@ -625,12 +626,14 @@ PQ_exec_status make_pq_leader_plan(THD *thd) {
         join->qep_tab[i].set_position(nullptr);
       }
     }
-    join->m_root_iterator.reset();
-    join->unit->m_root_iterator.reset();
+
+    join->query_expression()->clear_root_access_path();
 
     // generate execution tree
-    join->create_iterators();
-    join->unit->create_iterators(thd);
+    join->m_root_access_path = nullptr;
+    join->create_access_paths();
+    join->query_expression()->create_access_paths(thd);
+    if (join->query_expression()->force_create_iterators(thd)) goto err;
 
     thd->mem_root = saved_mem_root;
     thd->want_privilege = saved_thd_want_privilege;
@@ -710,7 +713,7 @@ static JOIN *make_pq_worker_plan(PQ_worker_manager *mngr) {
     goto err;
   }
 
-  join->having_cond = join->select_lex->having_cond();
+  join->having_cond = join->query_block->having_cond();
   join->need_tmp_pq = true;
   if (join->setup_tmp_table_info(template_join) ||
       join->make_tmp_tables_info() ||
@@ -732,8 +735,8 @@ static JOIN *make_pq_worker_plan(PQ_worker_manager *mngr) {
     goto err;
   }
 
-  join->unit->set_query_result(mq_result);
-  join->select_lex->set_query_result(mq_result);
+  join->query_expression()->set_query_result(mq_result);
+  join->query_block->set_query_result(mq_result);
 
   return join;
 
@@ -762,8 +765,8 @@ void *pq_worker_exec(void *arg) {
   THD *thd = nullptr, *leader_thd = nullptr;
 
   PQ_worker_manager *mngr = static_cast<PQ_worker_manager *>(arg);
-  DBUG_ASSERT(mngr->m_gather);
-#ifndef DBUG_OFF
+  assert(mngr->m_gather);
+#ifndef NDEBUG
   pq_stack_copy(*mngr->m_gather->m_code_state);
 #endif
   leader_thd = mngr->thd_leader;
@@ -778,15 +781,9 @@ void *pq_worker_exec(void *arg) {
   }
 
   thd = join->thd;
-  DBUG_ASSERT(current_thd == thd && thd->pq_leader == leader_thd);
+  assert(current_thd == thd && thd->pq_leader == leader_thd);
   mngr->signal_status(thd, PQ_worker_state::READY);
-  join->unit->ExecuteIteratorQuery(thd);
-
-  if (thd->lex->is_explain_analyze && mngr->m_id == 0) {
-    mngr->m_gather->iterator.reset(new (leader_thd->pq_mem_root)
-                                       PQExplainIterator(leader_thd));
-    mngr->m_gather->iterator->copy(join->unit->root_iterator());
-  }
+  join->query_expression()->ExecuteIteratorQuery(thd);
 
   if (join->thd->is_error() || join->thd->pq_error ||
       DBUG_EVALUATE_IF("pq_worker_error3", true, false)) {
@@ -798,7 +795,7 @@ err:
 
   /* s1: send error msg to MQ */
   if (send_error_status) {
-    DBUG_ASSERT(msg_handler && leader_thd);
+    assert(msg_handler && leader_thd);
     leader_thd->pq_error = true;
     msg_handler->send_exception_msg(ERROR_MSG);
   }
@@ -807,7 +804,7 @@ err:
   thd = (join && join->thd) ? join->thd : thd;
 
   /* s2: release resource */
-  result = join ? join->select_lex->query_result() : nullptr;
+  result = join ? join->query_block->query_result() : nullptr;
   if (result) {
     result->cleanup(thd);
     destroy(result);
@@ -844,7 +841,7 @@ err:
     thd = NULL;
   }
 
-#ifndef DBUG_OFF
+#ifndef NDEBUG
   pq_stack_reset();
 #endif
 
@@ -874,8 +871,8 @@ Plan refinement stage: do various setup things for the executor, including
 bool pq_make_join_readinfo(JOIN *join, PQ_worker_manager *mngr,
                            uint no_jbuf_after MY_ATTRIBUTE((unused))) {
   const bool prep_for_pos = join->need_tmp_before_win ||
-                            join->select_distinct || join->group_list ||
-                            join->order || join->m_windows.elements > 0;
+                            join->select_distinct || join->grouped ||
+                            !join->order.empty() || join->m_windows.elements > 0;
 
   for (uint i = join->const_tables; i < join->primary_tables; i++) {
     QEP_TAB *const qep_tab = &join->qep_tab[i];
@@ -885,14 +882,13 @@ bool pq_make_join_readinfo(JOIN *join, PQ_worker_manager *mngr,
   }
   std::vector<Item *> predicates_below_join;
   std::vector<PendingCondition> predicates_above_join;
-  join->m_root_iterator = nullptr;
+  join->m_root_access_path = nullptr;
   Gather_operator *gather = mngr->m_gather;
 
   for (uint i = 0; i < join->tables; i++) {
     QEP_TAB *qep_tab = &join->qep_tab[i];
     if (qep_tab->do_parallel_scan) {
       qep_tab->table()->file->pq_table_scan = gather->table_scan;
-      qep_tab->iterator.reset();
       qep_tab->gather = mngr->m_gather;
 
       /* index push down */
@@ -920,7 +916,7 @@ bool pq_make_join_readinfo(JOIN *join, PQ_worker_manager *mngr,
 
       /** optimize order by */
       if (join->pq_last_sort_idx == int(i) && i >= join->primary_tables) {
-        DBUG_ASSERT(qep_tab->filesort);
+        assert(qep_tab->filesort);
         /** if there is limit on tmp table, we cannot remove sort */
         if (join->m_select_limit == HA_POS_ERROR) {
           destroy(qep_tab->filesort);
@@ -928,16 +924,16 @@ bool pq_make_join_readinfo(JOIN *join, PQ_worker_manager *mngr,
         }
 
         if (join->pq_rebuilt_group) {
-          DBUG_ASSERT(join->select_lex->saved_group_list_ptrs);
-          DBUG_ASSERT(join->m_select_limit == HA_POS_ERROR);
-          restore_list(join->select_lex->saved_group_list_ptrs,
-                       join->select_lex->group_list);
+          assert(join->query_block->saved_group_list_ptrs);
+          assert(join->m_select_limit == HA_POS_ERROR);
+          restore_list(join->query_block->saved_group_list_ptrs,
+                       join->query_block->group_list);
           ORDER *order = restore_optimized_group_order(
-              join->select_lex->group_list,
+              join->query_block->group_list,
               join->saved_optimized_vars.optimized_group_flags);
           if (order) {
             ORDER_with_src group_list = ORDER_with_src(order, ESC_GROUP_BY);
-            join->add_sorting_to_table(i, &group_list);
+            join->add_sorting_to_table(i, &group_list, false, true);
           }
         }
       }
@@ -946,9 +942,10 @@ bool pq_make_join_readinfo(JOIN *join, PQ_worker_manager *mngr,
 
   /** generate execution tree */
   join->set_optimized();
-  join->unit->set_optimized();
-  join->create_iterators();
-  join->unit->create_iterators(join->thd);
+  join->query_expression()->set_optimized();
+  join->create_access_paths();
+  join->query_expression()->create_access_paths(join->thd);
+  join->query_expression()->force_create_iterators(join->thd);
 
   return false;
 }
@@ -963,7 +960,7 @@ bool pq_check_stable_sort(JOIN *join, int idx) {
 
 /*
  * record the mapping:
- *      L = join->select_lex->group_list -------> join->group_list = R
+ *      L = join->query_block->group_list -------> join->group_list = R
  *
  * @result:
  *    if L[i] \in R, then optimized_flags[i] = 0; otherwise, optimized_flags[i]
@@ -1026,7 +1023,7 @@ ORDER *restore_optimized_group_order(SQL_I_List<ORDER> &orig_list,
 }
 
 void restore_list(PQ_Group_list_ptrs *ptr, SQL_I_List<ORDER> &orig_list) {
-  orig_list.empty();
+  orig_list.clear();
 
   ORDER *order = nullptr;
   ORDER **iterator = ptr->begin();
@@ -1071,7 +1068,7 @@ void pq_free_join(JOIN *join) {
  */
 static void get_key_fields(TABLE *table, int key, uint key_parts,
                            std::vector<std::string> &key_fields) {
-  DBUG_ASSERT(table && table->key_info);
+  assert(table && table->key_info);
 
   KEY_PART_INFO *kp = table->key_info[key].key_part;
   for (uint i = 0; i < key_parts; i++, kp++) {
@@ -1089,7 +1086,7 @@ static void get_key_fields(TABLE *table, int key, uint key_parts,
  */
 bool get_table_key_fields(QEP_TAB *tab, std::vector<std::string> &key_fields) {
   key_fields.clear();
-  DBUG_ASSERT(tab);
+  assert(tab);
   auto type = tab->old_type();
 
   // the original table in leader_join's qep_tab
@@ -1133,7 +1130,7 @@ bool get_table_key_fields(QEP_TAB *tab, std::vector<std::string> &key_fields) {
 bool set_key_order(QEP_TAB *tab, std::vector<std::string> &key_fields,
                    ORDER **order_ptr, Ref_item_array *ref_ptrs) {
   JOIN *join = tab->join();
-  DBUG_ASSERT(join && !join->order);
+  assert(join && join->order.empty());
   if (!key_fields.size()) {
     *order_ptr = NULL;
     return false;
@@ -1145,7 +1142,7 @@ bool set_key_order(QEP_TAB *tab, std::vector<std::string> &key_fields,
 
   Ref_item_array ref_items = *ref_ptrs;
   /** (1) build the map: {name} -> {item} */
-  for (uint i = 0; i < join->all_fields.size(); i++) {
+  for (uint i = 0; i < join->query_block_fields->size(); i++) {
     Item *item = ref_items[i];
     if (item && item->type() == Item::FIELD_ITEM) {
       std::string field_name =
@@ -1173,7 +1170,7 @@ bool set_key_order(QEP_TAB *tab, std::vector<std::string> &key_fields,
       return true;
     }
 
-    order->item_ptr = item;
+    order->item_initial = item;
     order->item = &item;
     order->in_field_list = 1;
     order->is_explicit = 0;

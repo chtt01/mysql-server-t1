@@ -1,6 +1,7 @@
-#ifndef SQL_RECORDS_H
-#define SQL_RECORDS_H
-/* Copyright (c) 2008, 2021, Oracle and/or its affiliates.
+#ifndef PQ_RANGE_INCLUDED
+#define PQ_RANGE_INCLUDED
+
+/* Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
    Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
@@ -22,35 +23,17 @@
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+   
+enum PQ_RANGE_TYPE {
+  PQ_QUICK_SELECT_NONE,
+  PQ_RANGE_SELECT,
+  PQ_RANGE_SELECT_DESC,
+  PQ_SKIP_SCAN_SELECT,
+  PQ_GROUP_MIN_MAX_SELECT,
+  PQ_INDEX_MERGE_SELECT,
+  PQ_ROR_INTERSECT_SELECT,
+  PQ_ROR_UNION_SELECT,
+  PQ_QUICK_SELECT_INVALID
+};
 
-#include <sys/types.h>
-#include <memory>
-#include <string>
-
-#include "my_alloc.h"
-#include "my_base.h"
-#include "sql/basic_row_iterators.h"
-#include "sql/composite_iterators.h"
-#include "sql/ref_row_iterators.h"
-#include "sql/row_iterator.h"
-#include "sql/sorting_iterator.h"
-
-class QEP_TAB;
-class THD;
-struct AccessPath;
-struct TABLE;
-
-AccessPath *create_table_access_path(THD *thd, TABLE *table, QEP_TAB *qep_tab,
-                                     bool count_examined_rows, bool *pq_replace_path = nullptr);
-
-/**
-  Creates an iterator for the given table, then calls Init() on the resulting
-  iterator. Unlike create_table_iterator(), this can create iterators for sort
-  buffer results (which are set in the TABLE object during query execution).
-  Returns nullptr on failure.
- */
-unique_ptr_destroy_only<RowIterator> init_table_iterator(
-    THD *thd, TABLE *table, QEP_TAB *qep_tab, bool ignore_not_found_rows,
-    bool count_examined_rows);
-
-#endif /* SQL_RECORDS_H */
+#endif /* PQ_RANGE_INCLUDED */
