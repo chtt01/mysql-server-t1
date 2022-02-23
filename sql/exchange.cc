@@ -106,7 +106,7 @@ void Exchange::cleanup() {
 static char bool_item_field[8] = {0, 0, 0, 1, 1, 0, 1, 1};
 
 char *const_item_and_field_flag(uint value) {
-  DBUG_ASSERT(value < 4);
+  assert(value < 4);
   return bool_item_field + 2 * value;
 }
 
@@ -182,7 +182,7 @@ bool Exchange::convert_mq_data_to_record(uchar *data, int msg_len,
     item_field = m_table->field[i];
     /** determine whether it is a CONST_ITEM or NULL_FIELD */
     j = (null_offset >> 3) + 1;
-    DBUG_ASSERT((null_offset & 1) == 0);
+    assert((null_offset & 1) == 0);
     bit_value = (null_flag[j] >> (6 - (null_offset & 7))) & 3;
     status_flag = const_item_and_field_flag(bit_value);
     const_item = *status_flag;

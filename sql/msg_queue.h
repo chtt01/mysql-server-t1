@@ -296,19 +296,19 @@ class MQueue_handle {
 
   /** let event into wait status */
   void set_wait(MQ_event *event) {
-    DBUG_ASSERT(event != nullptr);
+    assert(event != nullptr);
     event->wait_latch();
   }
 
   /** end event's wait status */
   void end_wait(MQ_event *event) {
-    DBUG_ASSERT(event != nullptr);
+    assert(event != nullptr);
     event->set_latch();
   }
 
   /** reset event's wait status */
   void reset_wait(MQ_event *event) {
-    DBUG_ASSERT(event != nullptr);
+    assert(event != nullptr);
     event->reset_latch();
   }
 

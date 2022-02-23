@@ -66,7 +66,7 @@ bool Exchange_nosort::read_next(void **datap, uint32 *m_len) {
     read_result = get_next(datap, m_len, &readerdone);
     /** detached and its content is also read done */
     if (readerdone) {
-      DBUG_ASSERT(false == read_result);
+      assert(false == read_result);
       m_active_readers--;
       /** read done for all queues */
       if (m_active_readers == 0) {
@@ -114,7 +114,7 @@ bool Exchange_nosort::read_next(void **datap, uint32 *m_len) {
  * @retval: true for success, and otherwise false
  */
 bool Exchange_nosort::read_mq_record() {
-  DBUG_ASSERT(!is_stable() && get_exchange_type() == EXCHANGE_NOSORT);
+  assert(!is_stable() && get_exchange_type() == EXCHANGE_NOSORT);
   bool result = false;
   uchar *data = nullptr;
   uint32 msg_len = 0;

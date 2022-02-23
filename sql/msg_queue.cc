@@ -24,7 +24,7 @@
 #include "msg_queue.h"
 #include <arm_neon.h>
 
-#ifndef DBUG_OFF
+#ifndef NDEBUG
 bool dbug_pq_worker_stall = 0;
 #endif
 
@@ -45,7 +45,7 @@ MQ_RESULT MQueue_handle::send_bytes(uint32 nbytes, const void *data,
 
   /** only worker thread can send data to message queue */
   THD *thd = current_thd;
-  DBUG_ASSERT(!m_queue->m_sender_event->PQ_caller ||
+  assert(!m_queue->m_sender_event->PQ_caller ||
               thd == m_queue->m_sender_event->PQ_caller);
 
   uint64 rb, wb;
@@ -54,10 +54,10 @@ MQ_RESULT MQueue_handle::send_bytes(uint32 nbytes, const void *data,
     rb = atomic_read_u64(&m_queue->m_bytes_read);
     /** atomically obtain the write position */
     wb = atomic_read_u64(&m_queue->m_bytes_written);
-    DBUG_ASSERT(wb >= rb);
+    assert(wb >= rb);
 
     used = wb - rb;
-    DBUG_ASSERT(used <= ringsize);
+    assert(used <= ringsize);
     available = std::min(ringsize - used, nbytes - sent);
 
     compiler_barrier();
@@ -109,7 +109,7 @@ MQ_RESULT MQueue_handle::send_bytes(uint32 nbytes, const void *data,
       /** notify receiver to receive data */
       end_wait(m_queue->m_receiver_event);
     }
-#ifndef DBUG_OFF
+#ifndef NDEBUG
     if (dbug_pq_worker_stall) {
       sleep(1);  // 1 second
     }
@@ -121,7 +121,7 @@ MQ_RESULT MQueue_handle::send_bytes(uint32 nbytes, const void *data,
     return MQ_DETACHED;
   }
 
-  DBUG_ASSERT(sent == nbytes);
+  assert(sent == nbytes);
   *written = sent;
   return MQ_SUCCESS;
 }
@@ -144,19 +144,19 @@ MQ_RESULT MQueue_handle::send(const void *data, uint32 len, bool nowait) {
   /** (1) write the message length into MQ */
   res = send_bytes(WORD_LENGTH, (char *)&nbytes, &written, nowait);
   if (res != MQ_SUCCESS) {
-    DBUG_ASSERT(res == MQ_DETACHED);
+    assert(res == MQ_DETACHED);
     return res;
   }
-  DBUG_ASSERT((!written && m_queue->detached == MQ_TMP_DETACHED) ||
+  assert((!written && m_queue->detached == MQ_TMP_DETACHED) ||
               written == WORD_LENGTH);
 
   /** (2) write the message data into MQ */
   res = send_bytes(nbytes, data, &written, nowait);
   if (res != MQ_SUCCESS) {
-    DBUG_ASSERT(res == MQ_DETACHED);
+    assert(res == MQ_DETACHED);
     return res;
   }
-  DBUG_ASSERT((!written && m_queue->detached == MQ_TMP_DETACHED) ||
+  assert((!written && m_queue->detached == MQ_TMP_DETACHED) ||
               written == nbytes);
   return MQ_SUCCESS;
 }
@@ -169,14 +169,14 @@ MQ_RESULT MQueue_handle::send(Field_raw_data *fm) {
   /** (s1) sending the variable-field's length_bytes */
   if (fm->m_var_len) {
     res = send_bytes(1, (void *)&fm->m_var_len, &written);
-    DBUG_ASSERT((res == MQ_SUCCESS && written == 1) || res == MQ_DETACHED ||
+    assert((res == MQ_SUCCESS && written == 1) || res == MQ_DETACHED ||
                 (!written && m_queue->detached == MQ_TMP_DETACHED));
   }
 
   /** (s2) sending the data of field->ptr */
   if (MQ_SUCCESS == res) {
     res = send_bytes(fm->m_len, fm->m_ptr, &written);
-    DBUG_ASSERT((res == MQ_SUCCESS && written == fm->m_len) ||
+    assert((res == MQ_SUCCESS && written == fm->m_len) ||
                 res == MQ_DETACHED ||
                 (!written && m_queue->detached == MQ_TMP_DETACHED));
   }
@@ -199,15 +199,15 @@ MQ_RESULT MQueue_handle::receive_bytes(uint32 bytes_needed, uint32 *nbytesp,
   *nbytesp = 0;
   uint32 ringsize = m_queue->m_ring_size;
   THD *thd = current_thd;
-  DBUG_ASSERT(!m_queue->m_receiver_event->PQ_caller ||
+  assert(!m_queue->m_receiver_event->PQ_caller ||
               thd == m_queue->m_receiver_event->PQ_caller);
   while (!thd->is_killed() && !thd->pq_error) {
     rb = atomic_read_u64(&m_queue->m_bytes_read) + m_consume_pending;
     wb = atomic_read_u64(&m_queue->m_bytes_written);
-    DBUG_ASSERT(wb >= rb);
+    assert(wb >= rb);
 
     used = wb - rb;
-    DBUG_ASSERT(used <= ringsize);
+    assert(used <= ringsize);
     offset = MOD(rb, ringsize);
 
     /** we have enough space and then directly read bytes_needed data into datap
@@ -325,7 +325,7 @@ MQ_RESULT MQueue_handle::receive(void **datap, uint32 *nbytesp, bool nowait) {
 
   /** (1) read the message length */
   while (!m_length_word_complete) {
-    DBUG_ASSERT(m_partial_bytes < WORD_LENGTH);
+    assert(m_partial_bytes < WORD_LENGTH);
     res = receive_bytes(WORD_LENGTH - m_partial_bytes, &rb,
                         &m_buffer[m_partial_bytes], nowait);
     if (res != MQ_SUCCESS) {
@@ -340,7 +340,7 @@ MQ_RESULT MQueue_handle::receive(void **datap, uint32 *nbytesp, bool nowait) {
     m_consume_pending = vget_lane_u32(v_a, 1);
 
     if (m_partial_bytes >= WORD_LENGTH) {
-      DBUG_ASSERT(m_partial_bytes == WORD_LENGTH);
+      assert(m_partial_bytes == WORD_LENGTH);
       m_expected_bytes = *(uint32 *)m_buffer;
       m_length_word_complete = true;
       m_partial_bytes = 0;
@@ -357,7 +357,7 @@ MQ_RESULT MQueue_handle::receive(void **datap, uint32 *nbytesp, bool nowait) {
       destroy(m_buffer);
     }
     THD *thd = current_thd;
-    DBUG_ASSERT(!m_queue->m_receiver_event->PQ_caller ||
+    assert(!m_queue->m_receiver_event->PQ_caller ||
                 thd == m_queue->m_receiver_event->PQ_caller);
     m_buffer = new (thd->pq_mem_root) char[m_buffer_len];
     /**  if m_buffer allocates fail, then directly return my_error */
@@ -370,7 +370,7 @@ MQ_RESULT MQueue_handle::receive(void **datap, uint32 *nbytesp, bool nowait) {
   /** (2) read data of nbytes **/
   for (;;) {
     size_t still_needed;
-    DBUG_ASSERT(m_partial_bytes <= nbytes);
+    assert(m_partial_bytes <= nbytes);
 
     still_needed = nbytes - m_partial_bytes;
     res = receive_bytes(still_needed, &rb, &m_buffer[m_partial_bytes], nowait);
