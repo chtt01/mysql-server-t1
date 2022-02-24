@@ -1,0 +1,2 @@
+# Tests in this file are disabled for --pq debug test.
+auth_sec.server_withssl_client_withssl  : BUG#000 origin code failed
