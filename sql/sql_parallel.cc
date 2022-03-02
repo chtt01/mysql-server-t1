@@ -47,6 +47,7 @@
 #include "sql/sql_tmp_table.h"
 #include "sql/timing_iterator.h"
 #include "sql/transaction.h"
+#include "sql/join_optimizer/explain_access_path.h"
 
 ulonglong parallel_memory_limit = 0;
 ulong parallel_max_threads = 0;
@@ -785,6 +786,14 @@ void *pq_worker_exec(void *arg) {
   mngr->signal_status(thd, PQ_worker_state::READY);
   join->query_expression()->ExecuteIteratorQuery(thd);
 
+  if (thd->lex->is_explain_analyze && mngr->m_id == 0) {
+    Query_expression *unit = leader_thd->lex->unit;
+    leader_thd->pq_explain += PrintQueryPlan(
+        0, unit->root_access_path(),
+        unit->is_union() ? nullptr : unit->first_query_block()->join,
+        !unit->is_union());
+  }
+
   if (join->thd->is_error() || join->thd->pq_error ||
       DBUG_EVALUATE_IF("pq_worker_error3", true, false)) {
     goto err;
@@ -1136,18 +1145,18 @@ bool set_key_order(QEP_TAB *tab, std::vector<std::string> &key_fields,
     return false;
   }
 
-  std::map<std::string, Item *> fields_map;  // map[field] = item
-  std::map<std::string, Item *>::iterator iter;
-  std::vector<Item *> order_items;
+  std::map<std::string, Item **> fields_map;  // map[field] = item
+  std::map<std::string, Item **>::iterator iter;
+  std::vector<Item **> order_items;
 
-  Ref_item_array ref_items = *ref_ptrs;
+  Ref_item_array &ref_items = *ref_ptrs;
   /** (1) build the map: {name} -> {item} */
   for (uint i = 0; i < join->query_block_fields->size(); i++) {
     Item *item = ref_items[i];
     if (item && item->type() == Item::FIELD_ITEM) {
       std::string field_name =
           static_cast<Item_field *>(item)->field->field_name;
-      fields_map[field_name] = item;
+      fields_map[field_name] = &ref_items[i];
     }
   }
 
@@ -1163,15 +1172,15 @@ bool set_key_order(QEP_TAB *tab, std::vector<std::string> &key_fields,
   THD *thd = join->thd;
   SQL_I_List<ORDER> order_list;
 
-  for (Item *item : order_items) {
+  for (Item **item : order_items) {
     ORDER *order = new (thd->pq_mem_root) ORDER();
     if (!order) {
       *order_ptr = NULL;
       return true;
     }
 
-    order->item_initial = item;
-    order->item = &item;
+    order->item_initial = *item;
+    order->item = item;
     order->in_field_list = 1;
     order->is_explicit = 0;
     add_to_list(order_list, order);

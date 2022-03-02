@@ -695,7 +695,7 @@ void set_pq_condition_status(THD *thd) {
 }
 
 bool suite_for_parallel_query(THD *thd) {
-  if (thd->in_sp_trigger ||     // store procedure or trigger
+  if (thd->in_sp_trigger != 0 ||     // store procedure or trigger
       thd->m_attachable_trx ||  // attachable transaction
       thd->tx_isolation ==
           ISO_SERIALIZABLE) {  // serializable without snapshot read
@@ -755,6 +755,13 @@ bool suite_for_parallel_query(Query_block *select) {
 
   for (TABLE_LIST *tbl_list = select->table_list.first; tbl_list != nullptr;
        tbl_list = tbl_list->next_local) {
+    if (!suite_for_parallel_query(tbl_list)) {
+      return false;
+    }
+  }
+
+  for (TABLE_LIST *tbl_list = select->table_list.first; tbl_list != nullptr;
+       tbl_list = tbl_list->next_global) {
     if (!suite_for_parallel_query(tbl_list)) {
       return false;
     }

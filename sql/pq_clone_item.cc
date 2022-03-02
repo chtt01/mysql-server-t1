@@ -420,6 +420,14 @@ Item *Item_view_ref::pq_clone(class THD *thd, class Query_block *select) {
     }
 
     item_ref = &found_table->field_translation[field_index].item;
+
+    const char *db_name;
+    if (found_table->is_view()) {
+      db_name = found_table->db;
+    } else {
+      db_name = nullptr;
+    }
+
     item = new (thd->pq_mem_root)
         Item_view_ref(&select->context, item_ref, db_name, table_name,
                       orig_table_name(), field_name, found_table);
@@ -1596,8 +1604,16 @@ PQ_CLONE_RETURN
 COPY_FUNC_ITEM(Item_typecast_real, ARG0)
 
 PQ_CLONE_DEF(Item_func_get_system_var) {
-  new_item = new (thd->pq_mem_root) Item_func_get_system_var(
-      var, var_type, &component, item_name.ptr(), item_name.length());
+  sys_var *var_arg = var;
+
+  if (var_arg == nullptr) {
+    var_arg = var_tracker.bind_system_variable(thd);
+  }
+
+  if (var_arg != nullptr) {
+    new_item = new (thd->pq_mem_root) Item_func_get_system_var(
+      var_arg, var_type, &component, item_name.ptr(), item_name.length());
+  }
 }
 PQ_CLONE_RETURN
 

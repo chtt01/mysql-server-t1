@@ -6519,7 +6519,7 @@ int DsMrr_impl::dsmrr_init(RANGE_SEQ_IF *seq_funcs, void *seq_init_param,
     return retval;
   }
 
-  if (!thd->in_sp_trigger && thd->parallel_exec &&
+  if (thd->in_sp_trigger == 0 && thd->parallel_exec &&
       table->file->pq_range_type != PQ_QUICK_SELECT_NONE) {
     use_default_impl = true;
     retval = h->handler::multi_range_read_init(seq_funcs, seq_init_param,

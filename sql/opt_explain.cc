@@ -2134,9 +2134,13 @@ static bool ExplainIterator(THD *ethd, const THD *query_thd,
         default:
           break;
       }
-      explain += PrintQueryPlan(base_level, unit->root_access_path(),
+      if (ethd->parallel_exec && ethd->lex->is_explain_analyze) {
+        explain += ethd->pq_explain;
+      } else {
+        explain += PrintQueryPlan(base_level, unit->root_access_path(),
                                 unit->is_union() ? nullptr : join,
                                 /*is_root_of_join=*/!unit->is_union());
+      }
     } else {
       explain += PrintQueryPlan(0, /*path=*/nullptr, /*join=*/nullptr,
                                 /*is_root_of_join=*/false);

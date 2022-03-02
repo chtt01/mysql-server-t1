@@ -951,7 +951,7 @@ class THD : public MDL_context_owner,
   /* disable parallel execute */
   bool no_pq;
   /* disable parallel query for store procedure and trigger */
-  bool in_sp_trigger;
+  uint in_sp_trigger;
   /* select .. fro share/update */
   bool locking_clause;
   /* indicates whether parallel query is supported */
@@ -971,6 +971,9 @@ class THD : public MDL_context_owner,
   std::vector<THD*> pq_workers;
   /* protects THD::pq_workers. */
   mysql_mutex_t pq_lock_worker;
+
+  /* for explain analyze. */
+  std::string pq_explain;
 
   /* Used to execute base64 coded binlog events in MySQL server */
   Relay_log_info *rli_fake;

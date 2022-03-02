@@ -3741,7 +3741,7 @@ bool JOIN::make_pq_tables_info() {
     in tmplist, which we call it sum_field that use for recieving PQ workers's sum data.
   */
   table = create_tmp_table(thd, tmp_param, *curr_fields, nullptr, false, true,
-                           query_block->active_options(), HA_POS_ERROR, "", true);
+                           query_block->active_options(), HA_POS_ERROR, "", true, true);
   query_result->m_table = table;
 
   // the leader/worker's table is not same
@@ -4409,7 +4409,7 @@ bool JOIN::make_leader_tables_info() {
   */
   TABLE *table =
           create_tmp_table(thd, tmp_param, tmplist, nullptr, false, true,
-                           query_block->active_options(), HA_POS_ERROR, "", true);
+                           query_block->active_options(), HA_POS_ERROR, "", true, true);
   if (table == nullptr) { DBUG_RETURN(true); }
   table->materialized= false;
   tmp_tables = 1;
