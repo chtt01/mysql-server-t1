@@ -539,3 +539,529 @@ static void stop_timer(pool_timer_t *timer) noexcept {
   mysql_mutex_unlock(&timer->mutex);
   DBUG_VOID_RETURN;
 }
+
+/**
+  Poll for socket events and distribute them to worker threads
+  In many case current thread will handle single event itself.
+
+  @return a ready connection, or NULL on shutdown
+*/
+static connection_t *listener(thread_group_t *thread_group) {
+  DBUG_ENTER("listener");
+  connection_t *retval = nullptr;
+
+  for (;;) {
+    if (thread_group->shutdown) break;
+
+    native_event ev[MAX_EVENTS];
+    int cnt = io_poll_wait(thread_group->pollfd, ev, MAX_EVENTS, -1);
+
+    TP_INCREMENT_GROUP_COUNTER(thread_group, polls[LISTENER]);
+    if (cnt <= 0) {
+      assert(thread_group->shutdown);
+      break;
+    }
+
+    mysql_mutex_lock(&thread_group->mutex);
+
+    if (thread_group->shutdown) {
+      mysql_mutex_unlock(&thread_group->mutex);
+      break;
+    }
+
+    thread_group->io_event_count += cnt;
+
+    /*
+     We got some network events and need to make decisions : whether
+     listener  hould handle events and whether or not any wake worker
+     threads so they can handle events.
+
+     Q1 : Should listener handle an event itself, or put all events into
+     queue  and let workers handle the events?
+
+     Solution :
+     Generally, listener that handles events itself is preferable. We do not
+     want listener thread to change its state from waiting  to running too
+     often, Since listener has just woken from poll, it better uses its time
+     slice and does some work. Besides, not handling events means they go to
+     the  queue, and often to wake another worker must wake up to handle the
+     event. This is not good, as we want to avoid wakeups.
+
+     The downside of listener that also handles queries is that we can
+     potentially leave thread group  for long time not picking the new
+     network events. It is not  a major problem, because this stall will be
+     detected  sooner or later by  the timer thread. Still, relying on timer
+     is not always good, because it may "tick" too slow (large timer_interval)
+
+     We use following strategy to solve this problem - if queue was not empty
+     we suspect flood of network events and listener stays, Otherwise, it
+     handles a query.
+
+
+     Q2: If queue is not empty, how many workers to wake?
+
+     Solution:
+     We generally try to keep one thread per group active (threads handling
+     queries   are considered active, unless they stuck in inside some "wait")
+     Thus, we will wake only one worker, and only if there is not active
+     threads currently,and listener is not going to handle a query. When we
+     don't wake, we hope that  currently active  threads will finish fast and
+     handle the queue. If this does  not happen, timer thread will detect stall
+     and wake a worker.
+
+     NOTE: Currently nothing is done to detect or prevent long queuing times.
+     A solutionc for the future would be to give up "one active thread per
+     group" principle, if events stay  in the queue for too long, and just wake
+     more workers.
+    */
+
+    const bool listener_picks_event =
+        thread_group->high_prio_queue.is_empty() &&
+        thread_group->queue.is_empty();
+
+    /*
+      If listener_picks_event is set, listener thread will handle first event,
+      and put the rest into the queue. If listener_pick_event is not set, all
+      events go to the queue.
+    */
+    for (int i = (listener_picks_event) ? 1 : 0; i < cnt; i++) {
+      connection_t *c = (connection_t *)native_event_get_userdata(&ev[i]);
+      if (connection_is_high_prio(*c)) {
+        c->tickets--;
+        thread_group->high_prio_queue.push_back(c);
+      } else {
+        // c->tickets = c->thd->variables.threadpool_high_prio_tickets;
+        c->tickets = c->threadpool_high_prio_tickets; // !! todo
+        queue_push(thread_group, c);
+      }
+    }
+
+    if (listener_picks_event) {
+      /* Handle the first event. */
+      retval = (connection_t *)native_event_get_userdata(&ev[0]);
+      TP_INCREMENT_GROUP_COUNTER(thread_group, dequeues[LISTENER]);
+      mysql_mutex_unlock(&thread_group->mutex);
+      break;
+    }
+
+    if (thread_group->active_thread_count == 0) {
+      /* We added some work items to queue, now wake a worker. */
+      if (wake_thread(thread_group, false)) {
+        /*
+          Wake failed, hence groups has no idle threads. Now check if there are
+          any threads in the group except listener.
+        */
+        if (thread_group->thread_count == 1) {
+          /*
+            Currently there is no worker thread in the group, as indicated by
+            thread_count == 1 (this means listener is the only one thread in
+            the group).
+            The queue is not empty, and listener is not going to handle
+            events. In order to drain the queue,  we create a worker here.
+            Alternatively, we could just rely on timer to detect stall, and
+            create thread, but waiting for timer would be an inefficient and
+            pointless delay.
+          */
+          create_worker(thread_group, false);
+        }
+      }
+    }
+    mysql_mutex_unlock(&thread_group->mutex);
+  }
+
+  DBUG_RETURN(retval);
+}
+
+/**
+  Adjust thread counters in group or global
+  whenever thread is created or is about to exit
+
+  @param thread_group
+  @param count -  1, when new thread is created
+                 -1, when thread is about to exit
+*/
+
+static void add_thread_count(thread_group_t *thread_group,
+                             int32 count) noexcept {
+  thread_group->thread_count += count;
+  /* worker starts out and end in "active" state */
+  thread_group->active_thread_count += count;
+  tp_stats.num_worker_threads.fetch_add(count, std::memory_order_relaxed);
+}
+
+/**
+  Creates a new worker thread.
+  thread_mutex must be held when calling this function
+
+  NOTE: in rare cases, the number of threads can exceed
+  threadpool_max_threads, because we need at least 2 threads
+  per group to prevent deadlocks (one listener + one worker)
+*/
+
+static int create_worker(thread_group_t *thread_group,
+                         bool due_to_stall,
+                         bool admin_connection) noexcept {
+  my_thread_handle thread_id;
+  bool max_threads_reached = false;
+  int err;
+
+  DBUG_ENTER("create_worker");
+  if (!admin_connection &&
+      tp_stats.num_worker_threads.load(std::memory_order_relaxed) >=
+          (int)threadpool_max_threads &&
+      thread_group->thread_count >= 2) {
+    err = 1;
+    max_threads_reached = true;
+    goto end;
+  }
+
+  err = mysql_thread_create(key_worker_thread, &thread_id,
+                            thread_group->pthread_attr, worker_main,
+                            thread_group);
+  if (!err) {
+    thread_group->last_thread_creation_time = my_microsecond_getsystime();
+    Global_THD_manager::get_instance()->inc_thread_created();
+    add_thread_count(thread_group, 1);
+    TP_INCREMENT_GROUP_COUNTER(thread_group, thread_creations);
+    if (due_to_stall)
+    {
+      TP_INCREMENT_GROUP_COUNTER(thread_group, thread_creations_due_to_stall);
+    }
+  } else {
+    set_my_errno(errno);
+  }
+
+end:
+  if (err)
+    print_pool_blocked_message(max_threads_reached);
+  else
+    pool_block_start = 0; /* Reset pool blocked timer, if it was set */
+
+  DBUG_RETURN(err);
+}
+
+/**
+ Calculate microseconds throttling delay for thread creation.
+
+ The value depends on how many threads are already in the group:
+ small number of threads means no delay, the more threads the larger
+ the delay.
+
+ The actual values were not calculated using any scientific methods.
+ They just look right, and behave well in practice.
+
+ TODO: Should throttling depend on thread_pool_stall_limit?
+*/
+static ulonglong microsecond_throttling_interval(
+    const thread_group_t &thread_group) noexcept {
+  const int count = thread_group.thread_count;
+
+  if (count < 4) return 0;
+
+  if (count < 8) return 50 * 1000;
+
+  if (count < 16) return 100 * 1000;
+
+  return 200 * 1000;
+}
+
+/**
+  Wakes a worker thread, or creates a new one.
+
+  Worker creation is throttled, so we avoid too many threads
+  to be created during the short time.
+
+  If admin_connection is true, a new thread is created regardless of any other
+  limits.
+*/
+static int wake_or_create_thread(thread_group_t *thread_group,
+                                 bool due_to_stall, bool admin_connection) {
+  DBUG_ENTER("wake_or_create_thread");
+
+  if (thread_group->shutdown) DBUG_RETURN(0);
+
+  if (wake_thread(thread_group, due_to_stall) == 0) DBUG_RETURN(0);
+
+  if (thread_group->thread_count > thread_group->connection_count)
+    DBUG_RETURN(-1);
+
+  if (thread_group->active_thread_count == 0 || admin_connection) {
+    /*
+     We're better off creating a new thread here  with no delay, either there
+     are no workers at all, or they all are all blocking and there was no
+     idle  thread to wakeup. Smells like a potential deadlock or very slowly
+     executing requests, e.g sleeps or user locks.
+    */
+    DBUG_RETURN(create_worker(thread_group, due_to_stall, admin_connection));
+  }
+
+  const ulonglong now = my_microsecond_getsystime();
+  const ulonglong time_since_last_thread_created =
+      (now - thread_group->last_thread_creation_time);
+
+  /* Throttle thread creation. */
+  if (time_since_last_thread_created >
+      microsecond_throttling_interval(*thread_group)) {
+    DBUG_RETURN(create_worker(thread_group, due_to_stall));
+  }
+
+  TP_INCREMENT_GROUP_COUNTER(thread_group, throttles);
+  DBUG_RETURN(-1);
+}
+
+static int thread_group_init(thread_group_t *thread_group,
+                             pthread_attr_t *thread_attr) noexcept {
+  DBUG_ENTER("thread_group_init");
+  thread_group->pthread_attr = thread_attr;
+  mysql_mutex_init(key_group_mutex, &thread_group->mutex, NULL);
+  thread_group->pollfd = -1;
+  thread_group->shutdown_pipe[0] = -1;
+  thread_group->shutdown_pipe[1] = -1;
+  DBUG_RETURN(0);
+}
+
+static void thread_group_destroy(thread_group_t *thread_group) noexcept {
+  mysql_mutex_destroy(&thread_group->mutex);
+  if (thread_group->pollfd != -1) {
+    close(thread_group->pollfd);
+    thread_group->pollfd = -1;
+  }
+  for (int i = 0; i < 2; i++) {
+    if (thread_group->shutdown_pipe[i] != -1) {
+      close(thread_group->shutdown_pipe[i]);
+      thread_group->shutdown_pipe[i] = -1;
+    }
+  }
+}
+
+/**
+  Wake sleeping thread from waiting list
+*/
+
+static int wake_thread(thread_group_t *thread_group, bool due_to_stall) noexcept {
+  DBUG_ENTER("wake_thread");
+  worker_thread_t *thread = thread_group->waiting_threads.front();
+  if (thread) {
+    thread->woken = true;
+    thread_group->waiting_threads.remove(thread);
+    mysql_cond_signal(&thread->cond);
+    TP_INCREMENT_GROUP_COUNTER(thread_group, wakes);
+    if (due_to_stall) {
+      TP_INCREMENT_GROUP_COUNTER(thread_group, wakes_due_to_stall);
+    }
+    DBUG_RETURN(0);
+  }
+  DBUG_RETURN(1); /* no thread in waiter list => missed wakeup */
+}
+
+/**
+  Shutdown for thread group
+*/
+
+static void thread_group_close(thread_group_t *thread_group) noexcept {
+  DBUG_ENTER("thread_group_close");
+
+  mysql_mutex_lock(&thread_group->mutex);
+  if (thread_group->thread_count == 0) {
+    mysql_mutex_unlock(&thread_group->mutex);
+    thread_group_destroy(thread_group);
+    DBUG_VOID_RETURN;
+  }
+
+  thread_group->shutdown = true;
+  thread_group->listener = nullptr;
+
+  if (pipe(thread_group->shutdown_pipe)) {
+    mysql_mutex_unlock(&thread_group->mutex);
+    DBUG_VOID_RETURN;
+  }
+
+  /* Wake listener */
+  if (io_poll_associate_fd(thread_group->pollfd, thread_group->shutdown_pipe[0],
+                           nullptr)) {
+    mysql_mutex_unlock(&thread_group->mutex);
+    DBUG_VOID_RETURN;
+  }
+  char c = 0;
+  if (write(thread_group->shutdown_pipe[1], &c, 1) < 0) {
+    mysql_mutex_unlock(&thread_group->mutex);
+    DBUG_VOID_RETURN;
+  }
+
+  /* Wake all workers. */
+  while (wake_thread(thread_group, false) == 0) {
+  }
+
+  mysql_mutex_unlock(&thread_group->mutex);
+
+  mysql_mutex_lock(&thread_group->mutex);
+  while (thread_group->thread_count > 0) {
+    mysql_mutex_unlock(&thread_group->mutex);
+    my_sleep(10000);
+    mysql_mutex_lock(&thread_group->mutex);
+  }
+  mysql_mutex_unlock(&thread_group->mutex);
+
+  thread_group_destroy(thread_group);
+
+  DBUG_VOID_RETURN;
+}
+
+/*
+  Add work to the queue. Maybe wake a worker if they all sleep.
+
+  Currently, this function is only used when new connections need to
+  perform login (this is done in worker threads).
+
+*/
+
+static void queue_put(thread_group_t *thread_group, connection_t *connection) {
+  DBUG_ENTER("queue_put");
+
+  mysql_mutex_lock(&thread_group->mutex);
+  // connection->tickets = connection->thd->variables.threadpool_high_prio_tickets;
+  connection->enqueue_time = pool_timer.current_microtime;
+  connection->tickets = connection->threadpool_high_prio_tickets; // !! todo
+
+  queue_push(thread_group, connection);
+
+  if (thread_group->active_thread_count == 0)
+    wake_or_create_thread(thread_group, false, connection->thd->is_admin_connection());
+
+  mysql_mutex_unlock(&thread_group->mutex);
+
+  DBUG_VOID_RETURN;
+}
+
+/**
+  Retrieve a connection with pending event.
+
+  Pending event in our case means that there is either a pending login request
+  (if connection is not yet logged in), or there are unread bytes on the socket.
+
+  If there are no pending events currently, thread will wait.
+  If timeout specified in abstime parameter passes, the function returns NULL.
+
+  @param current_thread - current worker thread
+  @param thread_group - current thread group
+  @param abstime - absolute wait timeout
+
+  @return
+  connection with pending event.
+  NULL is returned if timeout has expired,or on shutdown.
+*/
+
+static connection_t *get_event(worker_thread_t *current_thread,
+                               thread_group_t *thread_group,
+                               struct timespec *abstime) {
+  DBUG_ENTER("get_event");
+  connection_t *connection = nullptr;
+  int err = 0;
+
+  mysql_mutex_lock(&thread_group->mutex);
+  assert(thread_group->active_thread_count >= 0);
+
+  for (;;) {
+    const bool oversubscribed = too_many_active_threads(*thread_group);
+    if (thread_group->shutdown) break;
+
+    /* Check if queue is not empty */
+    if (!oversubscribed) {
+      connection = queue_get(thread_group, WORKER);
+      if (connection) break;
+    }
+
+    /* If there is  currently no listener in the group, become one. */
+    if (!thread_group->listener) {
+      thread_group->listener = current_thread;
+      thread_group->active_thread_count--;
+      mysql_mutex_unlock(&thread_group->mutex);
+
+      connection = listener(thread_group);
+
+      mysql_mutex_lock(&thread_group->mutex);
+      thread_group->active_thread_count++;
+      /* There is no listener anymore, it just returned. */
+      thread_group->listener = nullptr;
+      break;
+    }
+
+    /*
+      Last thing we try before going to sleep is to
+      pick a single event via epoll, without waiting (timeout 0)
+    */
+    if (!oversubscribed) {
+      native_event nev;
+      if (io_poll_wait(thread_group->pollfd, &nev, 1, 0) == 1) {
+        thread_group->io_event_count++;
+        TP_INCREMENT_GROUP_COUNTER(thread_group, polls[WORKER]);
+        connection = (connection_t *)native_event_get_userdata(&nev);
+
+        /*
+          Since we are going to perform an out-of-order event processing for the
+          connection, first check whether it is eligible for high priority
+          processing. We can get here even if there are queued events, so it
+          must either have a high priority ticket, or there must be not too many
+          busy threads (as if it was coming from a low priority queue).
+        */
+        if (connection_is_high_prio(*connection))
+          connection->tickets--;
+        else if (too_many_busy_threads(*thread_group)) {
+          /*
+            Not eligible for high priority processing. Restore tickets and put
+            it into the low priority queue.
+          */
+
+          // connection->tickets =
+          //     connection->thd->variables.threadpool_high_prio_tickets;
+          connection->tickets =
+              connection->threadpool_high_prio_tickets; // !! todo
+
+          thread_group->queue.push_back(connection);
+          connection = nullptr;
+        }
+
+        if (connection) {
+          TP_INCREMENT_GROUP_COUNTER(thread_group, dequeues[WORKER]);
+          thread_group->queue_event_count++;
+          break;
+        }
+      }
+    }
+
+    /* And now, finally sleep */
+    current_thread->woken = false; /* wake() sets this to true */
+
+    /*
+      Add current thread to the head of the waiting list  and wait.
+      It is important to add thread to the head rather than tail
+      as it ensures LIFO wakeup order (hot caches, working inactivity timeout)
+    */
+    thread_group->waiting_threads.push_front(current_thread);
+
+    thread_group->active_thread_count--;
+    if (abstime) {
+      err = mysql_cond_timedwait(&current_thread->cond, &thread_group->mutex,
+                                 abstime);
+    } else {
+      err = mysql_cond_wait(&current_thread->cond, &thread_group->mutex);
+    }
+    thread_group->active_thread_count++;
+
+    if (!current_thread->woken) {
+      /*
+        Thread was not signalled by wake(), it might be a spurious wakeup or
+        a timeout. Anyhow, we need to remove ourselves from the list now.
+        If thread was explicitly woken, than caller removed us from the list.
+      */
+      thread_group->waiting_threads.remove(current_thread);
+    }
+
+    if (err) break;
+  }
+
+  thread_group->stalled = false;
+  mysql_mutex_unlock(&thread_group->mutex);
+
+  DBUG_RETURN(connection);
+}
