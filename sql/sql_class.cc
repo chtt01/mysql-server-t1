@@ -412,7 +412,7 @@ THD::THD(bool enable_plugins)
       pq_threads_running(0),
       pq_dop(0),
       no_pq(false),
-      in_sp_trigger(false),
+      in_sp_trigger(0),
       locking_clause(0),
       pq_error(false),
       pq_check_fields(0),
@@ -1559,7 +1559,7 @@ void THD::cleanup_after_query() {
   // Set the default "cute" mode for the execution environment:
   check_for_truncated_fields = CHECK_FIELD_IGNORE;
 
-  if (!in_sp_trigger) {
+  if (in_sp_trigger == 0) {
     // cleanup for parallel query
     if (pq_threads_running > 0) {
       release_pq_running_threads(pq_threads_running);
@@ -1572,6 +1572,7 @@ void THD::cleanup_after_query() {
     locking_clause = 0;
     pq_error = false;
     pq_workers.clear();
+    pq_explain.clear();
 
     if (killed == THD::KILL_PQ_QUERY)
      killed.store(THD::NOT_KILLED); // restore killed for next query

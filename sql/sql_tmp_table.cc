@@ -904,7 +904,8 @@ TABLE *create_tmp_table(THD *thd, Temp_table_param *param,
                         const mem_root_deque<Item *> &fields, ORDER *group,
                         bool distinct, bool save_sum_fields,
                         ulonglong select_options, ha_rows rows_limit,
-                        const char *table_alias, bool force_disk_table) {
+                        const char *table_alias, bool force_disk_table,
+                        bool parallel_query) {
   DBUG_TRACE;
   if (!param->allow_group_via_temp_table)
     group = nullptr;  // Can't use group key
@@ -1065,10 +1066,13 @@ TABLE *create_tmp_table(THD *thd, Temp_table_param *param,
         if (param->m_window == nullptr || !param->m_window->is_last())
           store_column = false;
       }
-      if (item->const_item() && (int)hidden_field_count <= 0) {
-        // mark this item and then we can identify it without sending a message to MQ.
-        item->skip_create_tmp_table = true;
-        continue;  // We don't have to store this
+
+      if (item->const_item()) {
+        if (parallel_query || (int)hidden_field_count <= 0) {
+          // mark this item and then we can identify it without sending a message to MQ.
+          item->skip_create_tmp_table = true;
+          continue;  // We don't have to store this
+        }
       }
     }
 

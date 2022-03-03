@@ -56,7 +56,8 @@ TABLE *create_tmp_table(THD *thd, Temp_table_param *param,
                         const mem_root_deque<Item *> &fields, ORDER *group,
                         bool distinct, bool save_sum_fields,
                         ulonglong select_options, ha_rows rows_limit,
-                        const char *table_alias, bool force_disk_table = false);
+                        const char *table_alias, bool force_disk_table = false,
+                        bool parallel_query = false);
 bool open_tmp_table(TABLE *table);
 TABLE *create_tmp_table_from_fields(THD *thd, List<Create_field> &field_list,
                                     bool is_virtual = true,

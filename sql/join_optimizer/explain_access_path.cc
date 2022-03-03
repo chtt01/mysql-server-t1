@@ -807,10 +807,7 @@ ExplainData ExplainAccessPath(const AccessPath *path, JOIN *join) {
                             path->parallel_scan().table->alias +
                             path->parallel_scan().table->file->explain_extra());
       Gather_operator *gather = path->parallel_scan().gather;
-      AccessPath *root_path = gather->m_template_join->m_root_access_path;
-      root_path = root_path ? root_path
-                            : (gather->m_workers[0]
-                                   ->thd_worker->lex->unit->m_root_access_path);
+      AccessPath *root_path = gather->m_workers[0]->thd_worker->lex->unit->m_root_access_path;
       children.push_back({root_path, "", gather->m_template_join});
       break;
     }
