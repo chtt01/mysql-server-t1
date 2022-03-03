@@ -86,12 +86,15 @@ explain select fd1, fd2, avg(fd2) from t1 group by fd1, fd2 having json_arrayagg
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using filesort
 Warnings:
+Warning	3986	Evaluating a JSON value in SQL boolean context does an implicit comparison against JSON integer 0; if this is not what you want, consider converting JSON to a SQL numeric type with JSON_VALUE RETURNING
 Note	1003	/* select#1 */ select `pq_having_database`.`t1`.`fd1` AS `fd1`,`pq_having_database`.`t1`.`fd2` AS `fd2`,avg(`pq_having_database`.`t1`.`fd2`) AS `avg(fd2)` from `pq_having_database`.`t1` group by `pq_having_database`.`t1`.`fd1`,`pq_having_database`.`t1`.`fd2` having (0 <> json_arrayagg(`pq_having_database`.`t1`.`fd2`))
 select fd1, fd2, avg(fd2) from t1 group by fd1, fd2 having json_arrayagg(fd2);
 fd1	fd2	avg(fd2)
 1	1	1.0000
 2	2	2.0000
 3	3	3.0000
+Warnings:
+Warning	3986	Evaluating a JSON value in SQL boolean context does an implicit comparison against JSON integer 0; if this is not what you want, consider converting JSON to a SQL numeric type with JSON_VALUE RETURNING
 explain select fd1, avg(fd2) from t1 group by fd1, fd2 having json_object(fd1, fd2) is not null;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
 1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using temporary
