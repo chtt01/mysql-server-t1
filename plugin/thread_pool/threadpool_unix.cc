@@ -1,4 +1,5 @@
 /* Copyright (C) 2012 Monty Program Ab
+   Copyright (C) 2022 Huawei Technologies Co., Ltd
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
