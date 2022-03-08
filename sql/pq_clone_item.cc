@@ -690,13 +690,19 @@ COPY_FUNC_ITEM(Item_func_lt, ARG0, ARG1)
 COPY_FUNC_ITEM(Item_func_ne, ARG0, ARG1)
 
 PQ_CLONE_DEF(Item_func_like) {
-  Item *arg0 = args[0]->pq_clone(thd, select);
-  if (arg0 == nullptr) return nullptr;
-
-  Item *arg1 = args[1]->pq_clone(thd, select);
-  if (arg1 == nullptr) return nullptr;
-
-  new_item = new (thd->pq_mem_root) Item_func_like(arg0, arg1);
+  Item *arg[3];
+  for (uint i = 0; i < arg_count; i++) {
+    arg[i] = args[i]->pq_clone(thd, select);
+    if (arg[i] == nullptr) return nullptr;
+  }
+  
+  if (arg_count == 2) {
+    new_item = new (thd->pq_mem_root) Item_func_like(arg[0], arg[1]);
+  } else if (arg_count == 3) {
+    new_item = new (thd->pq_mem_root) Item_func_like(arg[0], arg[1], arg[2]);
+  } else {
+    sql_print_warning("arg_count is wrong!");
+  }
 }
 PQ_CLONE_RETURN
 
@@ -1891,6 +1897,11 @@ PQ_CLONE_RETURN
 PQ_CLONE_DEF(PTI_text_literal_underscore_charset) {
   new_item = new (thd->pq_mem_root)
       PTI_text_literal_underscore_charset(POS(), is_7bit, cs, literal);
+}
+PQ_CLONE_RETURN
+
+PQ_CLONE_DEF(PTI_user_variable) {
+  new_item = new (thd->pq_mem_root) PTI_user_variable(POS(), {const_cast<char*>(name.m_str), name.m_length});
 }
 PQ_CLONE_RETURN
 

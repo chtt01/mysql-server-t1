@@ -1536,16 +1536,15 @@ RIGHT OUTER JOIN t1 tt2 ON 1
 RIGHT OUTER JOIN t1 tt1 ON 1
 STRAIGHT_JOIN    t1 tt9 ON 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Parallel execute (1 workers)
-2	SIMPLE	tt1	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	NULL
-2	SIMPLE	tt2	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	tt3	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	tt4	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	tt5	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	tt6	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	tt7	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	tt8	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	tt9	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using join buffer (hash join)
+1	SIMPLE	tt1	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	NULL
+1	SIMPLE	tt2	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	tt3	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	tt4	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	tt5	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	tt6	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	tt7	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	tt8	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	tt9	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using join buffer (hash join)
 Warnings:
 Note	1003	/* select#1 */ select 1 AS `1` from `test`.`t1` `tt1` left join (`test`.`t1` `tt2` left join (`test`.`t1` `tt3` left join `test`.`t1` `tt4` on(true) left join `test`.`t1` `tt5` on(true) left join `test`.`t1` `tt6` on(true) left join `test`.`t1` `tt7` on(true) left join `test`.`t1` `tt8` on(true)) on(true)) on(true) straight_join `test`.`t1` `tt9` where true
 SET optimizer_search_depth = DEFAULT;

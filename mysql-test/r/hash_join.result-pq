@@ -882,18 +882,17 @@ WHERE (NOT EXISTS
 ON alias4.col_varchar = alias3.col_varchar_key)
 WHERE alias3.pk >= table1.pk));
 EXPLAIN
--> Parallel scan on <temporary>
-    -> Nested loop antijoin  (cost=2.30 rows=8)
-        -> Filter: ((table1.pk = table2.pk) or (table1.col_varchar < 'D'))  (cost=1.00 rows=2)
-            -> Inner hash join (no condition)  (cost=1.00 rows=2)
-                -> Table scan on table1  (cost=0.45 rows=4)
-                -> Hash
-                    -> PQblock scan on table2 using varchar_key  (cost=0.35 rows=1)
-        -> Nested loop inner join  (cost=2.85 rows=4)
-            -> Filter: (alias3.pk >= table1.pk)  (cost=0.45 rows=4)
-                -> Index range scan on alias3 (re-planned for each iteration)  (cost=0.45 rows=4)
-            -> Filter: (alias4.col_varchar = alias3.col_varchar_key)  (cost=1.05 rows=1)
-                -> Table scan on alias4  (cost=1.05 rows=1)
+-> Nested loop antijoin  (cost=2.30 rows=8)
+    -> Filter: ((table1.pk = table2.pk) or (table1.col_varchar < 'D'))  (cost=1.00 rows=2)
+        -> Inner hash join (no condition)  (cost=1.00 rows=2)
+            -> Table scan on table1  (cost=0.45 rows=4)
+            -> Hash
+                -> Index scan on table2 using varchar_key  (cost=0.35 rows=1)
+    -> Nested loop inner join  (cost=2.85 rows=4)
+        -> Filter: (alias3.pk >= table1.pk)  (cost=0.45 rows=4)
+            -> Index range scan on alias3 (re-planned for each iteration)  (cost=0.45 rows=4)
+        -> Filter: (alias4.col_varchar = alias3.col_varchar_key)  (cost=1.05 rows=1)
+            -> Table scan on alias4  (cost=1.05 rows=1)
 
 Warnings:
 Note	1276	Field or reference 'test.table1.pk' of SELECT #2 was resolved in SELECT #1
@@ -3267,11 +3266,10 @@ LEFT JOIN t1 ON tt.t = 'crash2' AND tt.f2 = t1.f2
 WHERE
 tt.t = 'crash1';
 EXPLAIN
--> Parallel scan on <temporary>
-    -> Left hash join (no condition)  (cost=0.25 rows=0)
-        -> PQblock scan on t1  (cost=0.45 rows=2)
-        -> Hash
-            -> Zero rows (Impossible filter)  (cost=0.00..0.00 rows=0)
+-> Left hash join (no condition)  (cost=0.25 rows=0)
+    -> Table scan on t1  (cost=0.45 rows=2)
+    -> Hash
+        -> Zero rows (Impossible filter)  (cost=0.00..0.00 rows=0)
 
 SELECT
 tt.t
@@ -3700,11 +3698,10 @@ SELECT 1 FROM t1 JOIN t1 AS t2 ON t1.a=t2.a;
 1
 EXPLAIN FORMAT=tree SELECT 1 FROM t1 LEFT JOIN t1 AS t2 ON t1.a=t2.a;
 EXPLAIN
--> Parallel scan on <temporary>
-    -> Left hash join (<hash>(t2.a)=<hash>(t1.a)), extra conditions: (t2.a = t1.a)  (cost=0.73 rows=1)
-        -> PQblock scan on t1  (cost=0.35 rows=1)
-        -> Hash
-            -> Table scan on t2  (cost=0.37 rows=1)
+-> Left hash join (<hash>(t2.a)=<hash>(t1.a)), extra conditions: (t2.a = t1.a)  (cost=0.73 rows=1)
+    -> Table scan on t1  (cost=0.35 rows=1)
+    -> Hash
+        -> Table scan on t2  (cost=0.37 rows=1)
 
 SELECT 1 FROM t1 LEFT JOIN t1 AS t2 ON t1.a=t2.a;
 1

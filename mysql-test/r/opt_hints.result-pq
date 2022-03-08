@@ -978,56 +978,50 @@ INSERT INTO t VALUES (1);
 SET optimizer_switch='block_nested_loop=on';
 EXPLAIN SELECT 1 FROM t t1 LEFT JOIN t t2 ON 1 LEFT JOIN (t t3 LEFT JOIN t t4 ON 1) ON 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
 Warnings:
 Note	1003	/* select#1 */ select 1 AS `1` from `test`.`t` `t1` left join `test`.`t` `t2` on(true) left join (`test`.`t` `t3` left join `test`.`t` `t4` on(true)) on(true) where true
 EXPLAIN SELECT /*+ NO_BNL(t1) */ 1 FROM t t1 LEFT JOIN t t2 ON 1 LEFT JOIN (t t3 LEFT JOIN t t4 ON 1) ON 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
 Warnings:
 Note	1003	/* select#1 */ select /*+ NO_BNL(`t1`@`select#1`) */ 1 AS `1` from `test`.`t` `t1` left join `test`.`t` `t2` on(true) left join (`test`.`t` `t3` left join `test`.`t` `t4` on(true)) on(true) where true
 EXPLAIN SELECT /*+ NO_BNL(t2) */ 1 FROM t t1 LEFT JOIN t t2 ON 1 LEFT JOIN (t t3 LEFT JOIN t t4 ON 1) ON 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
 Warnings:
 Note	1003	/* select#1 */ select /*+ NO_BNL(`t2`@`select#1`) */ 1 AS `1` from `test`.`t` `t1` left join `test`.`t` `t2` on(true) left join (`test`.`t` `t3` left join `test`.`t` `t4` on(true)) on(true) where true
 EXPLAIN SELECT /*+ NO_BNL(t3) */ 1 FROM t t1 LEFT JOIN t t2 ON 1 LEFT JOIN (t t3 LEFT JOIN t t4 ON 1) ON 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
 Warnings:
 Note	1003	/* select#1 */ select /*+ NO_BNL(`t3`@`select#1`) */ 1 AS `1` from `test`.`t` `t1` left join `test`.`t` `t2` on(true) left join (`test`.`t` `t3` left join `test`.`t` `t4` on(true)) on(true) where true
 EXPLAIN SELECT /*+ NO_BNL(t4) */ 1 FROM t t1 LEFT JOIN t t2 ON 1 LEFT JOIN (t t3 LEFT JOIN t t4 ON 1) ON 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
 Warnings:
 Note	1003	/* select#1 */ select /*+ NO_BNL(`t4`@`select#1`) */ 1 AS `1` from `test`.`t` `t1` left join `test`.`t` `t2` on(true) left join (`test`.`t` `t3` left join `test`.`t` `t4` on(true)) on(true) where true
 EXPLAIN SELECT /*+ NO_BNL(t3) */ 1 FROM t t1 LEFT JOIN (t t2 LEFT JOIN t t3 ON 1 LEFT JOIN t t4 ON 1) ON 1 WHERE 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
 Warnings:
 Note	1003	/* select#1 */ select /*+ NO_BNL(`t3`@`select#1`) */ 1 AS `1` from `test`.`t` `t1` left join (`test`.`t` `t2` left join `test`.`t` `t3` on(true) left join `test`.`t` `t4` on(true)) on(true) where true
 SELECT /*+ NO_BNL(t4) */ 1 FROM t t1 LEFT JOIN t t2 ON 1 LEFT JOIN (t t3 LEFT JOIN t t4 ON 1) ON 1;
@@ -1039,74 +1033,66 @@ SELECT /*+ NO_BNL(t3) */ 1 FROM t t1 LEFT JOIN (t t2 LEFT JOIN t t3 ON 1 LEFT JO
 SET optimizer_switch='block_nested_loop=off';
 EXPLAIN SELECT 1 FROM t t1 LEFT JOIN (t t2 LEFT JOIN t t3 ON 1 INNER JOIN t t4 ON 1) ON 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
 Warnings:
 Note	1003	/* select#1 */ select 1 AS `1` from `test`.`t` `t1` left join (`test`.`t` `t2` left join `test`.`t` `t3` on(true) join `test`.`t` `t4`) on((true)) where true
 EXPLAIN SELECT /*+ BNL(t1) */ 1 FROM t t1 LEFT JOIN (t t2 LEFT JOIN t t3 ON 1 INNER JOIN t t4 ON 1) ON 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
 Warnings:
 Note	1003	/* select#1 */ select /*+ BNL(`t1`@`select#1`) */ 1 AS `1` from `test`.`t` `t1` left join (`test`.`t` `t2` left join `test`.`t` `t3` on(true) join `test`.`t` `t4`) on((true)) where true
 EXPLAIN SELECT /*+ BNL(t2) */ 1 FROM t t1 LEFT JOIN (t t2 LEFT JOIN t t3 ON 1 INNER JOIN t t4 ON 1) ON 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
 Warnings:
 Note	1003	/* select#1 */ select /*+ BNL(`t2`@`select#1`) */ 1 AS `1` from `test`.`t` `t1` left join (`test`.`t` `t2` left join `test`.`t` `t3` on(true) join `test`.`t` `t4`) on((true)) where true
 EXPLAIN SELECT /*+ BNL(t3) */ 1 FROM t t1 LEFT JOIN (t t2 LEFT JOIN t t3 ON 1 INNER JOIN t t4 ON 1) ON 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
 Warnings:
 Note	1003	/* select#1 */ select /*+ BNL(`t3`@`select#1`) */ 1 AS `1` from `test`.`t` `t1` left join (`test`.`t` `t2` left join `test`.`t` `t3` on(true) join `test`.`t` `t4`) on((true)) where true
 EXPLAIN SELECT /*+ BNL(t4) */ 1 FROM t t1 LEFT JOIN (t t2 LEFT JOIN t t3 ON 1 INNER JOIN t t4 ON 1) ON 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
 Warnings:
 Note	1003	/* select#1 */ select /*+ BNL(`t4`@`select#1`) */ 1 AS `1` from `test`.`t` `t1` left join (`test`.`t` `t2` left join `test`.`t` `t3` on(true) join `test`.`t` `t4`) on((true)) where true
 EXPLAIN SELECT /*+ BNL(t2, t3) */ 1 FROM t t1 LEFT JOIN (t t2 LEFT JOIN t t3 ON 1 INNER JOIN t t4 ON 1) ON 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
 Warnings:
 Note	1003	/* select#1 */ select /*+ BNL(`t2`@`select#1`) BNL(`t3`@`select#1`) */ 1 AS `1` from `test`.`t` `t1` left join (`test`.`t` `t2` left join `test`.`t` `t3` on(true) join `test`.`t` `t4`) on((true)) where true
 EXPLAIN SELECT /*+ BNL(t3, t4) */ 1 FROM t t1 LEFT JOIN (t t2 LEFT JOIN t t3 ON 1 INNER JOIN t t4 ON 1) ON 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
-2	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+1	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
 Warnings:
 Note	1003	/* select#1 */ select /*+ BNL(`t3`@`select#1`) BNL(`t4`@`select#1`) */ 1 AS `1` from `test`.`t` `t1` left join (`test`.`t` `t2` left join `test`.`t` `t3` on(true) join `test`.`t` `t4`) on((true)) where true
 EXPLAIN SELECT /*+ BNL(t2, t3, t4) */ 1 FROM t t1 LEFT JOIN (t t2 LEFT JOIN t t3 ON 1 INNER JOIN t t4 ON 1) ON 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
-2	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
-2	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using join buffer (hash join)
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	t3	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where; Using join buffer (hash join)
+1	SIMPLE	t4	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using join buffer (hash join)
 Warnings:
 Note	1003	/* select#1 */ select /*+ BNL(`t2`@`select#1`) BNL(`t3`@`select#1`) BNL(`t4`@`select#1`) */ 1 AS `1` from `test`.`t` `t1` left join (`test`.`t` `t2` left join `test`.`t` `t3` on(true) join `test`.`t` `t4`) on((true)) where true
 DROP TABLE t;
@@ -1856,8 +1842,7 @@ DROP TABLE t1;
 CREATE TABLE t1 (i INT);
 EXPLAIN SELECT /*+ QB_NAME(1a) BKA(t1@1a) */ 1 FROM t1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
 Warnings:
 Note	1003	/* select#1 */ select /*+ QB_NAME(`1a`) BKA(`t1`@`1a`) */ 1 AS `1` from `test`.`t1`
 DROP TABLE t1;
