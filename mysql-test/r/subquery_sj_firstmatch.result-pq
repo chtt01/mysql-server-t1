@@ -12113,9 +12113,8 @@ WHERE innr.pk <= 7
 )
 ;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Parallel execute (1 workers)
-2	SIMPLE	outr	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using where
-2	SIMPLE	innr	NULL	ref	PRIMARY,col_varchar_key	col_varchar_key	7	test.outr.col_varchar_nokey	1	50.00	Using where; Using index; FirstMatch(outr)
+1	SIMPLE	outr	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using where
+1	SIMPLE	innr	NULL	ref	PRIMARY,col_varchar_key	col_varchar_key	7	test.outr.col_varchar_nokey	1	50.00	Using where; Using index; FirstMatch(outr)
 Warnings:
 Note	1003	/* select#1 */ select 1 AS `1` from `test`.`t1` `outr` semi join (`test`.`t2` `innr`) where ((`test`.`innr`.`col_varchar_key` = `test`.`outr`.`col_varchar_nokey`) and (`test`.`innr`.`pk` <= 7))
 SELECT 1

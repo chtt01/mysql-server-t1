@@ -5,8 +5,7 @@ insert into t1 values(1);
 set names latin1;
 explain select '¡¬√ƒ≈', _latin1'¡¬√ƒ≈' from t1 limit 1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
 Warnings:
 Note	1003	/* select#1 */ select '¡¬√ƒ≈' AS `¡¬√ƒ≈`,_latin1'\xC1\xC2\xC3\xC4\xC5' AS `¡¬√ƒ≈` from `test`.`t1` limit 1
 select (@query:=QUERY)+NULL, (@trace:=TRACE)+NULL from information_schema.OPTIMIZER_TRACE;
@@ -102,17 +101,6 @@ explain select '¡¬√ƒ≈', _latin1'¡¬√ƒ≈' from t1 limit 1	{
           }
         ] /* steps */
       } /* join_optimization */
-    },
-    {
-      "make_parallel_query_plan": {
-        "select#": 1,
-        "detail": [
-          {
-            "table": "`t1`",
-            "degree of parallel": 4
-          }
-        ] /* detail */
-      } /* make_parallel_query_plan */
     },
     {
       "join_explain": {
@@ -216,17 +204,6 @@ explain select '√Å√Ç√É√Ñ√Ö', _latin1'√Å√Ç√É√Ñ√Ö' from t1 limit 1	{
           }
         ] /* steps */
       } /* join_optimization */
-    },
-    {
-      "make_parallel_query_plan": {
-        "select#": 1,
-        "detail": [
-          {
-            "table": "`t1`",
-            "degree of parallel": 4
-          }
-        ] /* detail */
-      } /* make_parallel_query_plan */
     },
     {
       "join_explain": {
