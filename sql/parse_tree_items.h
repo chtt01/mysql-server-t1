@@ -387,6 +387,8 @@ class PTI_user_variable final : public Item_func_get_user_var {
   PTI_user_variable(const POS &pos, const LEX_STRING &var) : super(pos, var) {}
 
   bool itemize(Parse_context *pc, Item **res) override;
+
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 /**

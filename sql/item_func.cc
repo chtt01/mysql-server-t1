@@ -6851,7 +6851,7 @@ bool Item_func_get_user_var::set_value(THD *thd, sp_rcontext * /*ctx*/,
 
 bool Item_func_get_user_var::pq_copy_from(THD *thd, Query_block *select,
                                           Item *item) {
-  if (Item_var_func::pq_copy_from(thd, select, this)) {
+  if (Item_var_func::pq_copy_from(thd, select, item)) {
     return true;
   }
   Item_func_get_user_var *orig_item =
@@ -6863,9 +6863,8 @@ bool Item_func_get_user_var::pq_copy_from(THD *thd, Query_block *select,
   THD *entry_thd = thd->pq_leader;
   assert(entry_thd);
   mysql_mutex_lock(&entry_thd->LOCK_thd_data);
-  var_entry = get_variable(entry_thd, name, NULL);
+  var_entry = get_variable(entry_thd, name, nullptr);
   mysql_mutex_unlock(&entry_thd->LOCK_thd_data);
-  assert(var_entry && orig_item->var_entry);
 #endif
   if (orig_item != nullptr) {
     m_cached_result_type = orig_item->m_cached_result_type;

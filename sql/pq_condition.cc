@@ -418,17 +418,13 @@ bool pq_create_result_fields(THD *thd, Temp_table_param *param,
 
   copy_func->reserve(copy_func_count);
   for (Item *item : fields) {
-    Field *new_field = nullptr;
     Item::Type type = item->type();
     const bool is_sum_func =
         type == Item::SUM_FUNC_ITEM && !item->m_is_window_function;
 
     if (not_all_columns && item != nullptr) {
       if (item->has_aggregation() && type != Item::SUM_FUNC_ITEM) {
-        if (item->used_tables() & OUTER_REF_TABLE_BIT) {
-          item->update_used_tables();
-        }
-
+        if (item->is_outer_reference()) item->update_used_tables();
         if (type == Item::SUBSELECT_ITEM ||
             (item->used_tables() & ~OUTER_REF_TABLE_BIT)) {
           param->using_outer_summary_function = 1;
@@ -449,14 +445,14 @@ bool pq_create_result_fields(THD *thd, Temp_table_param *param,
           goto update_hidden;
         }
       }
-      if (item->const_item() && (int)hidden_field_count <= 0) {
-        continue;  // We don't have to store this
-      }
+
+      if (item->const_item()) continue;
     }
 
     if (is_sum_func && !save_sum_fields) {
       /* Can't calc group yet */
     } else {
+      Field *new_field = nullptr;
       if (param->schema_table) {
         new_field =
             item ? create_tmp_field_for_schema(item, &table, root) : nullptr;
@@ -479,6 +475,8 @@ bool pq_create_result_fields(THD *thd, Temp_table_param *param,
       if (not_all_columns && type == Item::SUM_FUNC_ITEM) {
         ((Item_sum *)item)->result_field = new_field;
       }
+
+      s.fields++;
     }
 
   update_hidden:
@@ -486,6 +484,8 @@ bool pq_create_result_fields(THD *thd, Temp_table_param *param,
       param->hidden_field_count = 0;
     }
   }  // end of while ((item=li++)).
+
+  if (s.fields == 0) return true;
 
   Field *result_field = nullptr;
 
