@@ -47,9 +47,9 @@ const Item_sum::Sumfunctype NO_PQ_SUPPORTED_AGG_FUNC_TYPES[] = {
     Item_sum::SUM_BIT_FUNC};
 
 const Item_func::Functype NO_PQ_SUPPORTED_FUNC_TYPES[] = {
-    Item_func::MATCH_FUNC, Item_func::SUSERVAR_FUNC, Item_func::FUNC_SP,
-    Item_func::JSON_FUNC,  Item_func::SUSERVAR_FUNC, Item_func::UDF_FUNC,
-    Item_func::XML_FUNC};
+    Item_func::FT_FUNC,  Item_func::MATCH_FUNC, Item_func::SUSERVAR_FUNC,
+    Item_func::FUNC_SP,  Item_func::JSON_FUNC,  Item_func::SUSERVAR_FUNC,
+    Item_func::UDF_FUNC, Item_func::XML_FUNC};
 
 const char *NO_PQ_SUPPORTED_FUNC_ARGS[] = {
     "rand",          "json_valid",         "json_length",
@@ -722,12 +722,9 @@ bool suite_for_parallel_query(Query_expression *unit) {
 }
 
 bool suite_for_parallel_query(TABLE_LIST *tbl_list) {
-  if (tbl_list->is_view()) {
-    return false;
-  }
-
-  // skip explicit table lock
-  if (tbl_list->lock_descriptor().type > TL_READ ||
+  if (tbl_list->is_view() ||                        // view
+      tbl_list->lock_descriptor().type > TL_READ || // explicit table lock
+      tbl_list->is_fulltext_searched() ||           // fulltext match search
       current_thd->locking_clause) {
     return false;
   }
@@ -736,10 +733,10 @@ bool suite_for_parallel_query(TABLE_LIST *tbl_list) {
   if (tb != nullptr &&
       (tb->s->tmp_table != NO_TMP_TABLE ||         // template table
        tb->file->ht->db_type != DB_TYPE_INNODB ||  // Non-InnoDB table
-       tb->part_info ||                            // partition table
-       tb->fulltext_searched)) {                   // fulltext match search
+       tb->part_info)) {                           // partition table
     return false;
   }
+  
   return true;
 }
 

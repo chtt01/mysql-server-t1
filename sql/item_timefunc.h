@@ -316,6 +316,7 @@ class Item_typecast_year final : public Item_int_func {
   const char *func_name() const override { return "cast_as_year"; }
   enum Functype functype() const override { return TYPECAST_FUNC; }
   bool resolve_type(THD *thd) override;
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 /**
@@ -1008,6 +1009,8 @@ class Item_func_at_time_zone final : public Item_datetime_func {
 
   const char *specifier_string() const { return m_specifier_string; }
 
+  Item *pq_clone(THD *thd, Query_block *select) override;
+
  protected:
   bool check_type() const;
 
@@ -1083,6 +1086,7 @@ class Item_func_curtime_utc final : public Item_func_curtime {
   Item_func_curtime_utc(const POS &pos, uint8 dec_arg)
       : Item_func_curtime(pos, dec_arg) {}
   const char *func_name() const override { return "utc_time"; }
+  Item *pq_clone(THD *thd, Query_block *select) override;
 };
 
 /**
@@ -1450,6 +1454,7 @@ class Item_typecast_date final : public Item_date_func {
   bool get_date(MYSQL_TIME *ltime, my_time_flags_t fuzzy_date) override;
   const char *cast_type() const { return "date"; }
   Item *pq_clone(THD *thd, Query_block *select) override;
+  bool pq_copy_from(THD *thd, Query_block *select, Item *item) override;
 };
 
 class Item_typecast_time final : public Item_time_func {

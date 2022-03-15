@@ -259,29 +259,6 @@ PQ_CLONE_DEF(Item_int_with_ref) {
       Item_int_with_ref(pq_ref->data_type(), value, pq_ref, unsigned_flag);
 }
 PQ_CLONE_RETURN
-
-PQ_CLONE_DEF(Item_datetime_with_ref) {
-  if (origin_item) {
-    return origin_item->pq_clone(thd, select);
-  }
-  Item *pq_ref = ref->pq_clone(thd, select);
-  if (pq_ref == nullptr) return nullptr;
-
-  new_item = new (thd->pq_mem_root)
-      Item_datetime_with_ref(pq_ref->data_type(), decimals, value, pq_ref);
-}
-PQ_CLONE_RETURN
-
-PQ_CLONE_DEF(Item_time_with_ref) {
-  if (origin_item) {
-    return origin_item->pq_clone(thd, select);
-  }
-  Item *pq_ref = ref->pq_clone(thd, select);
-  if (pq_ref == nullptr) return nullptr;
-
-  new_item = new (thd->pq_mem_root) Item_time_with_ref(decimals, value, pq_ref);
-}
-PQ_CLONE_RETURN
 /* Item_num end */
 
 /* Item_string start */
@@ -829,6 +806,12 @@ PQ_COPY_FROM_DEF(Item_extract, Item_int_func) {
   }
 }
 PQ_COPY_FROM_RETURN
+
+PQ_CLONE_DEF(Item_typecast_year) {
+  PQ_CLONE_ARGS
+  new_item = new (thd->pq_mem_root) Item_typecast_year(POS(), item_list[0]);
+}
+PQ_CLONE_RETURN
 
 COPY_FUNC_ITEM(Item_func_ascii, POS(), ARG0)
 COPY_FUNC_ITEM(Item_func_bit_count, POS(), ARG0)
@@ -1533,6 +1516,13 @@ COPY_FUNC_ITEM(Item_func_from_days, POS(), ARG0)
 COPY_FUNC_ITEM(Item_func_makedate, POS(), ARG0, ARG1)
 COPY_FUNC_ITEM(Item_typecast_date, POS(), ARG0)
 
+PQ_COPY_FROM_DEF(Item_typecast_date, Item_date_func) {
+  if (orig_item != nullptr) {
+    m_explicit_cast = orig_item->m_explicit_cast;
+  }
+}
+PQ_COPY_FROM_RETURN
+
 PQ_CLONE_DEF(Item_datetime_literal) {
   MYSQL_TIME *ltime = new (thd->pq_mem_root) MYSQL_TIME();
   if (ltime != nullptr) {
@@ -1570,10 +1560,24 @@ PQ_COPY_FROM_DEF(Item_typecast_datetime, Item_datetime_func) {
 }
 PQ_COPY_FROM_RETURN
 
+PQ_CLONE_DEF(Item_func_at_time_zone) {
+  Item *arg_item = args[0]->pq_clone(thd, select);
+  if (arg_item == nullptr) return nullptr;
+
+  new_item = new (thd->pq_mem_root) Item_func_at_time_zone(
+      POS(), arg_item, m_specifier_string, m_is_interval);
+}
+PQ_CLONE_RETURN
+
 PQ_CLONE_DEF(Item_func_curtime_local) {
   PQ_CLONE_ARGS
   new_item =
       new (thd->pq_mem_root) Item_func_curtime_local(POS(), this->decimals);
+}
+PQ_CLONE_RETURN
+
+PQ_CLONE_DEF(Item_func_curtime_utc) {
+  new_item = new (thd->pq_mem_root) Item_func_curtime_utc(POS(), decimals);
 }
 PQ_CLONE_RETURN
 
@@ -1974,6 +1978,24 @@ Item *Item_func_false::pq_clone(THD *thd, Query_block *select) {
   }
 
   return new_item;
+}
+
+Item *Item_datetime_with_ref::pq_clone(THD *thd, Query_block *select) {
+  CHECK_TYPE(Item_datetime_with_ref);
+  if (origin_item) {
+    return origin_item->pq_clone(thd, select);
+  }
+
+  return ref->pq_clone(thd, select);
+}
+
+Item *Item_time_with_ref::pq_clone(THD *thd, Query_block *select) {
+  CHECK_TYPE(Item_time_with_ref);
+  if (origin_item) {
+    return origin_item->pq_clone(thd, select);
+  }
+
+  return ref->pq_clone(thd, select);
 }
 
 #endif
