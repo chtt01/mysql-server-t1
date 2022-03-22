@@ -8,7 +8,7 @@ select @@force_parallel_execute;
 select sum(id) from t1;;
 show status like "PQ_threads_running";
 Variable_name	Value
-PQ_threads_running	3
+PQ_threads_running	7
 show status like "PQ_memory_used";
 Variable_name	Value
 PQ_memory_used	#######
@@ -30,7 +30,7 @@ sum(id)
 500500
 show status like "PQ_threads_running";
 Variable_name	Value
-PQ_threads_running	0
+PQ_threads_running	4
 show status like "PQ_memory_used";
 Variable_name	Value
 PQ_memory_used	0
