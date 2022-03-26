@@ -455,18 +455,7 @@ Item *Item_ref::pq_clone(class THD *thd, class Query_block *select) {
     new_item =
         new (thd->pq_mem_root) Item_ref(POS(), db_name, table_name, field_name);
   else if (copy_type == WITH_CONTEXT_REF) {
-    // ref has been pointed to appropriate item
-    uint counter;
-    enum_resolution_type resolution;
-    Item **select_item =
-        find_item_in_list(thd, *ref, &select->fields, &counter,
-                          REPORT_EXCEPT_NOT_FOUND, &resolution);
-
-    if (!select_item || select_item == not_found_item) return NULL;
-
-    new_item = new (thd->pq_mem_root)
-        Item_ref(new_context, select_item, db_name, table_name, field_name,
-                 m_alias_of_expr);
+    return (*ref)->pq_clone(thd, select);
   } else {
     assert(copy_type == WITH_REF_ONLY);
     new_item = new (thd->pq_mem_root) Item_ref(thd, this);

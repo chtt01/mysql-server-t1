@@ -71,7 +71,6 @@ explain select/*+ PQ(32) */ sum(id) from t1;
 
 set global parallel_max_threads = 16;
 explain select/*+ PQ(32) */ sum(id) from t1;
-show status like "PQ_threads_refused";
 
 set global parallel_max_threads = 64;
 explain select/*+ NO_PQ */ sum(id) from t1;

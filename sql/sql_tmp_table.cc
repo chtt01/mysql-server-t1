@@ -1068,10 +1068,14 @@ TABLE *create_tmp_table(THD *thd, Temp_table_param *param,
       }
 
       if (item->const_item()) {
-        if (parallel_query || (int)hidden_field_count <= 0) {
+        if ((int)hidden_field_count <= 0) {
           // mark this item and then we can identify it without sending a message to MQ.
           item->skip_create_tmp_table = true;
           continue;  // We don't have to store this
+        }
+        if (parallel_query) {
+          item->skip_create_tmp_table = true;
+          goto HIDDEN;
         }
       }
     }
@@ -1224,6 +1228,7 @@ TABLE *create_tmp_table(THD *thd, Temp_table_param *param,
       }
     }
 
+HIDDEN:
     hidden_field_count--;
     if (hidden_field_count == 0) {
       /*

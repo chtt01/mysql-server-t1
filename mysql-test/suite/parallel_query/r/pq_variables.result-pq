@@ -102,9 +102,6 @@ id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered
 1	SIMPLE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1024	100.00	NULL
 Warnings:
 Note	1003	/* select#1 */ select /*+ PQ(@`select#1`) */ sum(`test`.`t1`.`id`) AS `sum(id)` from `test`.`t1`
-show status like "PQ_threads_refused";
-Variable_name	Value
-PQ_threads_refused	1
 set global parallel_max_threads = 64;
 explain select/*+ NO_PQ */ sum(id) from t1;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
@@ -117,7 +114,7 @@ set global debug_pq_worker_stall = true;
 select/*+ PQ(8) */ sum(id) from t1;;
 show status like "PQ_threads_running";
 Variable_name	Value
-PQ_threads_running	3
+PQ_threads_running	7
 ----con2 wait parallel threads 5s-----
 set session parallel_queue_timeout=5000;
 explain select/*+ PQ(8) */ sum(id) from t1;;
