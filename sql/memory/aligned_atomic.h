@@ -99,6 +99,9 @@ static inline size_t cache_line_size() {
 template <typename T>
 static inline size_t _cacheline_for() {
   size_t csize = memory::cache_line_size();
+#ifndef NDEBUG
+  if (csize == 0) { csize = 64 };
+#endif
   size_t size{static_cast<size_t>(std::ceil(static_cast<double>(sizeof(T)) /
                                             static_cast<double>(csize))) *
               csize};

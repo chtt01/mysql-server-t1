@@ -1,4 +1,5 @@
 /* Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -83,6 +84,8 @@ enum opt_hints_enum {
   JOIN_INDEX_HINT_ENUM,
   GROUP_INDEX_HINT_ENUM,
   ORDER_INDEX_HINT_ENUM,
+  PQ_HINT_ENUM,
+  NO_PQ_HINT_ENUM,
   DERIVED_CONDITION_PUSHDOWN_HINT_ENUM,
   MAX_HINT_ENUM
 };

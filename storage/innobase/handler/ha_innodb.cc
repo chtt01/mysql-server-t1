@@ -4,6 +4,7 @@ Copyright (c) 2000, 2021, Oracle and/or its affiliates.
 Copyright (c) 2008, 2009 Google Inc.
 Copyright (c) 2009, Percona Inc.
 Copyright (c) 2012, Facebook Inc.
+Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
 Portions of this file contain modifications contributed and copyrighted by
 Google, Inc. Those modifications are gratefully acknowledged and are described
@@ -9953,7 +9954,12 @@ int ha_innobase::index_read(
 
       m_prebuilt->ins_sel_stmt = thd_is_ins_sel_stmt(m_user_thd);
 
+      auto saved_ipc = m_prebuilt->idx_cond;
+      if (m_prebuilt->pq_index_read) {
+        m_prebuilt->idx_cond = false;
+      }
       ret = row_search_mvcc(buf, mode, m_prebuilt, match_mode, 0);
+      m_prebuilt->idx_cond = saved_ipc;
 
     } else {
       m_prebuilt->session = thd_to_innodb_session(m_user_thd);

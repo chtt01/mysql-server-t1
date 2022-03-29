@@ -1,4 +1,5 @@
 /* Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -102,7 +103,7 @@ class Priority_queue : public Less {
 
   friend class priority_queue_unittest::PriorityQueueTest;
 
- private:
+ public:
   // Deriving from Less allows empty base-class optimization in some cases.
   typedef Less Base;
 
@@ -403,7 +404,7 @@ class Priority_queue : public Less {
     return false;
   }
 
- private:
+ public:
   container_type m_container;
 };
 

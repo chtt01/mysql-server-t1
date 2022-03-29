@@ -1,4 +1,5 @@
 /* Copyright (c) 2002, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -3453,7 +3454,7 @@ bool subselect_hash_sj_engine::exec(THD *thd) {
     }
 
     /* Set tmp_param only if its usable, i.e. there are Copy_field's. */
-    tmp_param = &(item->unit->outer_query_block()->join->tmp_table_param);
+    tmp_param = (item->unit->outer_query_block()->join->tmp_table_param);
     if (tmp_param && tmp_param->copy_fields.empty()) tmp_param = nullptr;
   }  // if (!is_materialized)
 

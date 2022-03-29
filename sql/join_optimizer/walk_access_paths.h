@@ -1,4 +1,5 @@
 /* Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -86,6 +87,8 @@ void WalkAccessPaths(AccessPath *path, const JOIN *join,
     case AccessPath::ZERO_ROWS_AGGREGATED:
     case AccessPath::MATERIALIZED_TABLE_FUNCTION:
     case AccessPath::UNQUALIFIED_COUNT:
+    case AccessPath::PARALLEL_SCAN:
+    case AccessPath::PQBLOCK_SCAN:
       // No children.
       return;
     case AccessPath::NESTED_LOOP_JOIN:

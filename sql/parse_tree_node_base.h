@@ -1,4 +1,5 @@
 /* Copyright (c) 2013, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -61,6 +62,7 @@ enum enum_parsing_context {
   CTX_INSERT_VALUES,  ///< INSERT ... VALUES
   CTX_INSERT_UPDATE,  ///< INSERT ... ON DUPLICATE KEY UPDATE ...
   CTX_JOIN,
+  CTX_GATHER,
   CTX_QEP_TAB,
   CTX_MATERIALIZATION,
   CTX_DUPLICATES_WEEDOUT,

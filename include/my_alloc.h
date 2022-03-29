@@ -1,4 +1,5 @@
 /* Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -43,6 +44,9 @@
 #include "my_inttypes.h"
 #include "my_pointer_arithmetic.h"
 #include "mysql/psi/psi_memory.h"
+
+typedef void CallBackFunc(PSI_memory_key key, size_t length, unsigned int id) ;
+const int PQ_MEMORY_USED_BUCKET = 16;
 
 /**
  * The MEM_ROOT is a simple arena, where allocations are carved out of
@@ -132,28 +136,7 @@ struct MEM_ROOT {
    *
    * The returned pointer will always be 8-aligned.
    */
-  void *Alloc(size_t length) MY_ATTRIBUTE((malloc)) {
-    length = ALIGN_SIZE(length);
-
-    // Skip the straight path if simulating OOM; it should always fail.
-    DBUG_EXECUTE_IF("simulate_out_of_memory", return AllocSlow(length););
-
-    // Fast path, used in the majority of cases. It would be faster here
-    // (saving one register due to CSE) to instead test
-    //
-    //   m_current_free_start + length <= m_current_free_end
-    //
-    // but it would invoke undefined behavior, and in particular be prone
-    // to wraparound on 32-bit platforms.
-    if (static_cast<size_t>(m_current_free_end - m_current_free_start) >=
-        length) {
-      void *ret = m_current_free_start;
-      m_current_free_start += length;
-      return ret;
-    }
-
-    return AllocSlow(length);
-  }
+  void *Alloc(size_t length) MY_ATTRIBUTE((malloc));
 
   /**
     Allocate “num” objects of type T, and default-construct them.
@@ -389,6 +372,11 @@ struct MEM_ROOT {
   void (*m_error_handler)(void) = nullptr;
 
   PSI_memory_key m_psi_key = 0;
+
+public:
+  CallBackFunc *allocCBFunc = nullptr;
+
+  CallBackFunc *freeCBFunc = nullptr;  
 };
 
 // Legacy C thunks. Do not use in new code.

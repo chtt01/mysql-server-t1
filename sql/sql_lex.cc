@@ -1,5 +1,6 @@
 /*
    Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -4214,6 +4215,18 @@ bool LEX::locate_var_assignment(const Name_string &name) {
     if (var->name.eq(name)) return true;
   }
   return false;
+}
+
+void Query_block::fix_prepare_information_for_order(
+    THD *thd, SQL_I_List<ORDER> *list, Group_list_ptrs **list_ptrs) {
+  Group_list_ptrs *p = *list_ptrs;
+  if (p == nullptr) {
+    void *mem = thd->stmt_arena->alloc(sizeof(Group_list_ptrs));
+    *list_ptrs = p = new (mem) Group_list_ptrs(thd->stmt_arena->mem_root);
+  }
+  p->reserve(list->elements);
+  for (ORDER *order = list->first; order; order = order->next)
+    p->push_back(order);
 }
 
 /**

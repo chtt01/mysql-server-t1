@@ -1,4 +1,5 @@
 /* Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -180,6 +181,8 @@ bool Query_block::prepare(THD *thd, mem_root_deque<Item *> *insert_field_list) {
   if (is_table_value_constructor) return prepare_values(thd);
 
   Query_expression *const unit = master_query_expression();
+
+  if (has_windows()) saved_windows_elements = m_windows.elements;
 
   if (!top_join_list.empty()) propagate_nullability(&top_join_list, false);
 
@@ -579,6 +582,15 @@ bool Query_block::prepare(THD *thd, mem_root_deque<Item *> *insert_field_list) {
   // in the presence of ROLLUP.
   if (olap == ROLLUP_TYPE && resolve_rollup_wfs(thd))
     return true; /* purecov: inspected */
+
+  if (thd->m_suite_for_pq == PqConditionStatus::ENABLED) {
+    if (group_list.elements > 0)
+      fix_prepare_information_for_order(thd, &group_list,
+                                        &saved_group_list_ptrs);
+    if (order_list.elements > 0)
+      fix_prepare_information_for_order(thd, &order_list,
+                                        &saved_order_list_ptrs);
+  }
 
   assert(!thd->is_error());
   return false;
@@ -4244,9 +4256,15 @@ bool find_order_in_list(THD *thd, Ref_item_array ref_item_array,
     order->is_position = true;
     return false;
   }
-  /* Lookup the current GROUP/ORDER field in the SELECT clause. */
-  select_item = find_item_in_list(thd, order_item, fields, &counter,
+
+  if (thd->parallel_exec && !order->in_field_list) {
+    select_item = not_found_item;
+  } else {
+    /* Lookup the current GROUP/ORDER field in the SELECT clause. */
+    select_item = find_item_in_list(thd, order_item, fields, &counter,
                                   REPORT_EXCEPT_NOT_FOUND, &resolution);
+  }
+
   if (!select_item)
     return true; /* The item is not unique, or some other error occurred. */
 
@@ -4272,7 +4290,7 @@ bool find_order_in_list(THD *thd, Ref_item_array ref_item_array,
          order_item_type == Item::FIELD_ITEM) ||
         order_item_type == Item::REF_ITEM) {
       from_field = find_field_in_tables(thd, (Item_ident *)order_item, tables,
-                                        nullptr, &view_ref, IGNORE_ERRORS, true,
+                                        nullptr, &view_ref, IGNORE_ERRORS, !thd->pq_leader,
                                         // view_ref is a local variable, so
                                         // don't record a change to roll back:
                                         false);

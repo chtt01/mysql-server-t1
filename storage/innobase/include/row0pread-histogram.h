@@ -1,6 +1,7 @@
 /*****************************************************************************
 
 Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License, version 2.0, as published by the
@@ -35,6 +36,7 @@ Created 2019-04-20 by Darshan M N. */
 #include <random>
 #include "row0pread.h"
 #include "ut0counter.h"
+#include "handler.h"
 
 class Histogram_sampler {
  public:

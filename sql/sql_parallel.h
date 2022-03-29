@@ -2,7 +2,7 @@
 #define SQL_PARALLEL_H
 
 /* Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
-   Copyright (c) 2021, Huawei Technologies Co., Ltd.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -30,7 +30,7 @@
 #include "sql/sql_lex.h"
 
 class QEP_TAB;
-class SELECT_LEX;
+class Query_block;
 class THD;
 class Gather_operator;
 class JOIN;
@@ -145,7 +145,6 @@ class Gather_operator {
   mysql_mutex_t lock_stmt_da;
   CODE_STATE **m_code_state;
   bool table_scan;
-  unique_ptr_destroy_only<PQExplainIterator> iterator;
 
  public:
   Gather_operator() = delete;
@@ -164,10 +163,10 @@ class Gather_operator {
 Gather_operator *make_pq_gather_operator(JOIN *join, QEP_TAB *tab, uint dop);
 PQ_exec_status make_pq_leader_plan(THD *thd);
 void *pq_worker_exec(void *arg);
-bool pq_build_sum_funcs(THD *thd, SELECT_LEX *select, Ref_item_array &ref_ptr,
-                        List<Item> &fields, uint elements,
+bool pq_build_sum_funcs(THD *thd, Query_block *select, Ref_item_array &ref_ptr,
+                        mem_root_deque<Item *> &fields, uint elements,
                         nesting_map select_nest_level);
-void pq_replace_avg_func(THD *thd, SELECT_LEX *select, List<Item> *fields,
+void pq_replace_avg_func(THD *thd, Query_block *select, mem_root_deque<Item *> *fields,
                          nesting_map select_nest_level);
 extern bool get_table_key_fields(QEP_TAB *tab,
                                  std::vector<std::string> &res_fields);

@@ -1,4 +1,5 @@
 /* Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+   Copyright (c) 2022, Huawei Technologies Co., Ltd.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -337,6 +338,7 @@ class Table_ident {
 
 using List_item = mem_root_deque<Item *>;
 using Group_list_ptrs = Mem_root_array<ORDER *>;
+using PQ_Group_list_ptrs = Mem_root_array<ORDER *>;
 
 /**
   Structure to hold parameters for CHANGE MASTER, START SLAVE, and STOP SLAVE.
@@ -674,7 +676,9 @@ class Query_expression {
     unfinished materialization (see optimize()).
    */
   unique_ptr_destroy_only<RowIterator> m_root_iterator;
+ public:
   AccessPath *m_root_access_path = nullptr;
+ private:
 
   /**
     If there is an unfinished materialization (see optimize()),
@@ -695,13 +699,13 @@ class Query_expression {
   Mem_root_array<MaterializePathParameters::QueryBlock> setup_materialization(
       THD *thd, TABLE *dst_table, bool union_distinct_only);
 
+ public:
   /**
     Convert the executor structures to a set of access paths, storing the result
     in m_root_access_path.
    */
   void create_access_paths(THD *thd);
 
- public:
   /**
     result of this query can't be cached, bit field, can be :
       UNCACHEABLE_DEPENDENT
@@ -880,6 +884,7 @@ class Query_expression {
 
   /// Set new query result object for this query expression
   void set_query_result(Query_result *res) { m_query_result = res; }
+  void set_slave(Query_block *select_lex) { slave = select_lex; }
 
   /**
     Whether there is a chance that optimize() is capable of materializing
@@ -1087,6 +1092,7 @@ enum class enum_explain_type {
   EXPLAIN_UNION,
   EXPLAIN_UNION_RESULT,
   EXPLAIN_MATERIALIZED,
+  EXPLAIN_GATHER,
   // Total:
   EXPLAIN_total  ///< fake type, total number of all valid types
 
@@ -1100,6 +1106,7 @@ enum class enum_explain_type {
 */
 class Query_block {
  public:
+  Query_block *orig;
   /**
     @note the group_by and order_by lists below will probably be added to the
           constructor when the parser is converted into a true bottom-up design.
@@ -1180,6 +1187,8 @@ class Query_block {
   Query_block *next_query_block() const { return next; }
 
   TABLE_LIST *find_table_by_name(const Table_ident *ident);
+
+  void set_master_unit(Query_expression *unit) { master = unit; }
 
   /**
     @return true  If STRAIGHT_JOIN applies to all tables.
@@ -1876,6 +1885,13 @@ class Query_block {
   SQL_I_List<ORDER> group_list{};
   Group_list_ptrs *group_list_ptrs{nullptr};
 
+  /*
+  * the backup of group_list/order_list before optimization, which is used
+  * to generate worker's group_list/order_list.
+  */
+  PQ_Group_list_ptrs *saved_group_list_ptrs{nullptr};
+  PQ_Group_list_ptrs *saved_order_list_ptrs{nullptr};
+
   // Used so that AggregateIterator knows which items to signal when the rollup
   // level changes. Obviously only used in the presence of rollup.
   Prealloced_array<Item_rollup_group_item *, 4> rollup_group_items{
@@ -2178,8 +2194,10 @@ class Query_block {
   bool resolve_rollup(THD *thd);
 
   bool setup_wild(THD *thd);
+ public:
   bool setup_order_final(THD *thd);
   bool setup_group(THD *thd);
+ private:
   void fix_after_pullout(Query_block *parent_query_block,
                          Query_block *removed_query_block);
   void remove_redundant_subquery_clauses(THD *thd,
@@ -2233,10 +2251,12 @@ class Query_block {
   // Delete unused columns from merged derived tables
   void delete_unused_merged_columns(mem_root_deque<TABLE_LIST *> *tables);
 
+ public:
   /// Helper for fix_prepare_information()
   void fix_prepare_information_for_order(THD *thd, SQL_I_List<ORDER> *list,
                                          Group_list_ptrs **list_ptrs);
 
+ private:
   bool prepare_values(THD *thd);
   bool check_only_full_group_by(THD *thd);
   bool is_row_count_valid_for_semi_join();
@@ -2251,10 +2271,16 @@ class Query_block {
     Template parameter is "true": no need to run DTORs on pointers.
   */
   Mem_root_array<Item_exists_subselect *> *sj_candidates{nullptr};
-
+ public:
   /// How many expressions are part of the order by but not select list.
   int hidden_order_field_count{0};
 
+  /**
+    Windows function maybe be optimized, so we save this value to determine
+    whether support parallel query.
+  */
+  uint saved_windows_elements{0};
+ private:
   /**
     Intrusive double-linked list of all query blocks within the same
     query expression.
@@ -2279,6 +2305,8 @@ class Query_block {
     should not be modified after resolving is done.
   */
   ulonglong m_base_options{0};
+
+ public:
   /**
     Active options. Derived from base options, modifiers added during
     resolving and values from session variable option_bits. Since the latter
@@ -2286,6 +2314,7 @@ class Query_block {
   */
   ulonglong m_active_options{0};
 
+ private:
   TABLE_LIST *resolve_nest{
       nullptr};  ///< Used when resolving outer join condition
 
@@ -2301,10 +2330,10 @@ class Query_block {
 
   /// Condition to be evaluated on grouped rows after grouping.
   Item *m_having_cond;
-
+ public:
   /// Number of GROUP BY expressions added to all_fields
   int hidden_group_field_count;
-
+ private:
   /**
     True if query block has semi-join nests merged into it. Notice that this
     is updated earlier than sj_nests, so check this if info is needed
@@ -3900,6 +3929,7 @@ struct LEX : public Query_tables_list {
   bool has_udf() const { return m_has_udf; }
   st_parsing_options parsing_options;
   Alter_info *alter_info;
+  bool in_execute_ps{false};
   /* Prepared statements SQL syntax:*/
   LEX_CSTRING prepared_stmt_name; /* Statement name (in all queries) */
   /*
