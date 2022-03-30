@@ -1,3 +1,16 @@
 # Tests in this file are disabled for --pq debug test.
-auth_sec.server_withssl_client_withssl  : BUG#000 origin code failed
-innodb.innodb_bug30113362               : BUG#001 not apply to parallel queries
+main.ssl-big                                        : BUG#000 origin code failed
+main.mysql_load_data_local_dir                      : BUG#000 origin code failed
+innodb.innodb_bug30899683                           : BUG#000 origin code failed
+innodb.innodb_buffer_pool_resize                    : BUG#000 origin code failed
+innodb.lock_sys_resize                              : BUG#000 origin code failed
+main.mtr_unit_tests                                 : BUG#000 origin code failed
+main.file_contents                                  : BUG#000 origin code failed
+main.dd_pfs                                         : BUG#000 origin code failed
+sys_vars.innodb_buffer_pool_size_basic              : BUG#000 origin code failed
+main.read_only_ddl                                  : BUG#000 origin code failed
+secondary_engine.cost_threshold                     : BUG#000 origin code failed
+innodb.innodb_buffer_pool_resize_with_instances     : BUG#000 origin code failed
+main.log_buffered-big                               : BUG#000 origin code failed
+innodb.innodb_buffer_pool_resize_with_chunks        : BUG#000 origin code failed
+innodb.innodb_bug30113362                           : BUG#001 not apply to parallel queries

@@ -151,11 +151,12 @@ bool TABLE_REF::pq_copy(JOIN *join, TABLE_REF *ref, QEP_TAB *qep_tab) {
   use_count = ref->use_count;
   disable_cache = ref->disable_cache;
 
-  if (!(key_buff = (uchar *)thd->mem_calloc(ALIGN_SIZE(key_length) * 2)) ||
-      !(key_copy = (store_key **)thd->mem_calloc(
-            (sizeof(store_key *) * (key_parts)))) ||
-      !(items = (Item **)thd->mem_calloc(sizeof(Item *) * key_parts)) ||
-      !(cond_guards = (bool **)thd->mem_calloc(sizeof(uint *) * key_parts))) {
+  if (!(key_buff = thd->pq_mem_root->ArrayAlloc<uchar>(ALIGN_SIZE(key_length))) ||
+      !(key_buff2 =
+            thd->pq_mem_root->ArrayAlloc<uchar>(ALIGN_SIZE(key_length))) ||
+      !(key_copy = thd->pq_mem_root->ArrayAlloc<store_key *>(key_parts)) ||
+      !(items = thd->pq_mem_root->ArrayAlloc<Item *>(key_parts)) ||
+      !(cond_guards = thd->pq_mem_root->ArrayAlloc<bool *>(key_parts))) {
     return true;
   }
 
@@ -163,8 +164,8 @@ bool TABLE_REF::pq_copy(JOIN *join, TABLE_REF *ref, QEP_TAB *qep_tab) {
     null_ref_key = key_buff;
   }
 
-  key_buff2 = key_buff + ALIGN_SIZE(key_length);
-  memcpy(key_buff, ref->key_buff, ALIGN_SIZE(key_length) * 2);
+  memcpy(key_buff, ref->key_buff, ALIGN_SIZE(key_length));
+  memcpy(key_buff2, ref->key_buff2, ALIGN_SIZE(key_length));
   uchar *key_buff_tmp = key_buff;
 
   for (uint i = 0; i < key_parts; i++) {
