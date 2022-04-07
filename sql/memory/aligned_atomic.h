@@ -77,7 +77,9 @@ static inline size_t _cache_line_size() {
 
 #elif defined(__linux__)
 static inline size_t _cache_line_size() {
-  return sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
+  long size = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
+  if (size == -1 || size == 0) return 64;
+  return static_cast<size_t>(size);
 }
 
 #else
@@ -99,9 +101,6 @@ static inline size_t cache_line_size() {
 template <typename T>
 static inline size_t _cacheline_for() {
   size_t csize = memory::cache_line_size();
-#ifndef NDEBUG
-  if (csize == 0) { csize = 64; }
-#endif
   size_t size{static_cast<size_t>(std::ceil(static_cast<double>(sizeof(T)) /
                                             static_cast<double>(csize))) *
               csize};
