@@ -666,6 +666,14 @@ INSERT INTO `lineitem` VALUES (593637, 327, 828, 6, 11.00, 13500.52, 0.03, 0.06,
 INSERT INTO `lineitem` VALUES (15744, 119, 870, 1, 17.00, 17324.87, 0.10, 0.05, 'R', 'F', '1993-06-20', '1993-05-29', '1993-07-09', 'DELIVER IN PERSON', 'RAIL', 'quickly final requests sle');
 INSERT INTO `lineitem` VALUES (303877, 362, 863, 3, 39.00, 49232.04, 0.00, 0.01, 'A', 'F', '1992-11-28', '1992-12-18', '1992-11-29', 'DELIVER IN PERSON', 'MAIL', 'furiously.');
 
+ANALYZE TABLE supplier;
+ANALYZE TABLE lineitem;
+ANALYZE TABLE orders;
+ANALYZE TABLE customer;
+ANALYZE TABLE nation;
+ANALYZE TABLE part;
+ANALYZE TABLE partsupp;
+
 explain select
 	supp_nation,
 	cust_nation,

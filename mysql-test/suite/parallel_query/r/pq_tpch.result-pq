@@ -634,6 +634,27 @@ INSERT INTO `lineitem` VALUES (59108, 119, 870, 6, 21.00, 21401.31, 0.00, 0.06, 
 INSERT INTO `lineitem` VALUES (593637, 327, 828, 6, 11.00, 13500.52, 0.03, 0.06, 'R', 'F', '1994-11-22', '1994-12-23', '1994-12-02', 'DELIVER IN PERSON', 'AIR', 'sly regular instructions.');
 INSERT INTO `lineitem` VALUES (15744, 119, 870, 1, 17.00, 17324.87, 0.10, 0.05, 'R', 'F', '1993-06-20', '1993-05-29', '1993-07-09', 'DELIVER IN PERSON', 'RAIL', 'quickly final requests sle');
 INSERT INTO `lineitem` VALUES (303877, 362, 863, 3, 39.00, 49232.04, 0.00, 0.01, 'A', 'F', '1992-11-28', '1992-12-18', '1992-11-29', 'DELIVER IN PERSON', 'MAIL', 'furiously.');
+ANALYZE TABLE supplier;
+Table	Op	Msg_type	Msg_text
+pq_database.supplier	analyze	status	OK
+ANALYZE TABLE lineitem;
+Table	Op	Msg_type	Msg_text
+pq_database.lineitem	analyze	status	OK
+ANALYZE TABLE orders;
+Table	Op	Msg_type	Msg_text
+pq_database.orders	analyze	status	OK
+ANALYZE TABLE customer;
+Table	Op	Msg_type	Msg_text
+pq_database.customer	analyze	status	OK
+ANALYZE TABLE nation;
+Table	Op	Msg_type	Msg_text
+pq_database.nation	analyze	status	OK
+ANALYZE TABLE part;
+Table	Op	Msg_type	Msg_text
+pq_database.part	analyze	status	OK
+ANALYZE TABLE partsupp;
+Table	Op	Msg_type	Msg_text
+pq_database.partsupp	analyze	status	OK
 explain select
 supp_nation,
 cust_nation,
@@ -674,15 +695,15 @@ supp_nation,
 cust_nation,
 l_year;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	2	75.00	Parallel execute (1 workers)
-2	SIMPLE	n1	NULL	ALL	PRIMARY	NULL	NULL	NULL	2	75.00	Using where; Using temporary; Using filesort
-2	SIMPLE	n2	NULL	ALL	PRIMARY	NULL	NULL	NULL	2	75.00	Using where; Using join buffer (hash join)
-2	SIMPLE	customer	NULL	ref	PRIMARY,CUSTOMER_FK1	CUSTOMER_FK1	4	pq_database.n2.n_nationkey	1	100.00	Using index
+1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	4	100.00	Parallel execute (1 workers)
+2	SIMPLE	customer	NULL	index	PRIMARY,CUSTOMER_FK1	CUSTOMER_FK1	4	NULL	4	100.00	Using index; Using temporary; Using filesort
+2	SIMPLE	n2	NULL	eq_ref	PRIMARY	PRIMARY	4	pq_database.customer.C_NATIONKEY	1	19.00	Using where
 2	SIMPLE	orders	NULL	ref	PRIMARY,ORDERS_FK1	ORDERS_FK1	4	pq_database.customer.c_custkey	1	100.00	Using index
 2	SIMPLE	lineitem	NULL	ref	PRIMARY	PRIMARY	4	pq_database.orders.o_orderkey	1	11.11	Using where
-2	SIMPLE	supplier	NULL	eq_ref	PRIMARY,SUPPLIER_FK1	PRIMARY	4	pq_database.lineitem.L_SUPPKEY	1	5.00	Using where
+2	SIMPLE	supplier	NULL	eq_ref	PRIMARY,SUPPLIER_FK1	PRIMARY	4	pq_database.lineitem.L_SUPPKEY	1	100.00	NULL
+2	SIMPLE	n1	NULL	eq_ref	PRIMARY	PRIMARY	4	pq_database.supplier.S_NATIONKEY	1	19.00	Using where
 Warnings:
-Note	1003	/* select#1 */ select `pq_database`.`n1`.`N_NAME` AS `supp_nation`,`pq_database`.`n2`.`N_NAME` AS `cust_nation`,extract(year from `pq_database`.`lineitem`.`L_SHIPDATE`) AS `l_year`,sum((`pq_database`.`lineitem`.`L_EXTENDEDPRICE` * (1 - `pq_database`.`lineitem`.`L_DISCOUNT`))) AS `revenue` from `pq_database`.`supplier` join `pq_database`.`lineitem` join `pq_database`.`orders` join `pq_database`.`customer` join `pq_database`.`nation` `n1` join `pq_database`.`nation` `n2` where ((`pq_database`.`customer`.`C_NATIONKEY` = `pq_database`.`n2`.`n_nationkey`) and (`pq_database`.`supplier`.`S_NATIONKEY` = `pq_database`.`n1`.`n_nationkey`) and (`pq_database`.`orders`.`O_CUSTKEY` = `pq_database`.`customer`.`c_custkey`) and (`pq_database`.`lineitem`.`l_orderkey` = `pq_database`.`orders`.`o_orderkey`) and (`pq_database`.`supplier`.`s_suppkey` = `pq_database`.`lineitem`.`L_SUPPKEY`) and (((`pq_database`.`n2`.`N_NAME` = 'GERMANY') and (`pq_database`.`n1`.`N_NAME` = 'FRANCE')) or ((`pq_database`.`n2`.`N_NAME` = 'FRANCE') and (`pq_database`.`n1`.`N_NAME` = 'GERMANY'))) and (`pq_database`.`lineitem`.`L_SHIPDATE` between DATE'1995-01-01' and DATE'1996-12-31')) group by `shipping`.`supp_nation`,`shipping`.`cust_nation`,`shipping`.`l_year` order by `shipping`.`supp_nation`,`shipping`.`cust_nation`,`l_year`
+Note	1003	/* select#1 */ select `pq_database`.`n1`.`N_NAME` AS `supp_nation`,`pq_database`.`n2`.`N_NAME` AS `cust_nation`,extract(year from `pq_database`.`lineitem`.`L_SHIPDATE`) AS `l_year`,sum((`pq_database`.`lineitem`.`L_EXTENDEDPRICE` * (1 - `pq_database`.`lineitem`.`L_DISCOUNT`))) AS `revenue` from `pq_database`.`supplier` join `pq_database`.`lineitem` join `pq_database`.`orders` join `pq_database`.`customer` join `pq_database`.`nation` `n1` join `pq_database`.`nation` `n2` where ((`pq_database`.`n2`.`n_nationkey` = `pq_database`.`customer`.`C_NATIONKEY`) and (`pq_database`.`n1`.`n_nationkey` = `pq_database`.`supplier`.`S_NATIONKEY`) and (`pq_database`.`orders`.`O_CUSTKEY` = `pq_database`.`customer`.`c_custkey`) and (`pq_database`.`lineitem`.`l_orderkey` = `pq_database`.`orders`.`o_orderkey`) and (`pq_database`.`supplier`.`s_suppkey` = `pq_database`.`lineitem`.`L_SUPPKEY`) and (((`pq_database`.`n2`.`N_NAME` = 'GERMANY') and (`pq_database`.`n1`.`N_NAME` = 'FRANCE')) or ((`pq_database`.`n2`.`N_NAME` = 'FRANCE') and (`pq_database`.`n1`.`N_NAME` = 'GERMANY'))) and (`pq_database`.`lineitem`.`L_SHIPDATE` between DATE'1995-01-01' and DATE'1996-12-31')) group by `shipping`.`supp_nation`,`shipping`.`cust_nation`,`shipping`.`l_year` order by `shipping`.`supp_nation`,`shipping`.`cust_nation`,`l_year`
 select
 supp_nation,
 cust_nation,
@@ -760,15 +781,15 @@ order by
 nation,
 o_year desc;
 id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
-1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Parallel execute (1 workers)
-2	SIMPLE	part	NULL	ALL	PRIMARY	NULL	NULL	NULL	1	100.00	Using where; Using temporary; Using filesort
-2	SIMPLE	nation	NULL	ALL	PRIMARY	NULL	NULL	NULL	2	100.00	Using join buffer (hash join)
+1	SIMPLE	<gather2>	NULL	ALL	NULL	NULL	NULL	NULL	32	11.11	Parallel execute (1 workers)
+2	SIMPLE	part	NULL	ALL	PRIMARY	NULL	NULL	NULL	32	11.11	Using where; Using temporary; Using filesort
 2	SIMPLE	partsupp	NULL	ref	PRIMARY,PARTSUPP_FK1	PRIMARY	4	pq_database.part.p_partkey	1	100.00	NULL
-2	SIMPLE	supplier	NULL	eq_ref	PRIMARY,SUPPLIER_FK1	PRIMARY	4	pq_database.partsupp.PS_SUPPKEY	1	5.00	Using where
-2	SIMPLE	lineitem	NULL	ref	PRIMARY,LINEITEM_FK2	LINEITEM_FK2	8	pq_database.part.p_partkey,pq_database.partsupp.PS_SUPPKEY	179	100.00	NULL
+2	SIMPLE	supplier	NULL	eq_ref	PRIMARY,SUPPLIER_FK1	PRIMARY	4	pq_database.partsupp.PS_SUPPKEY	1	100.00	NULL
+2	SIMPLE	nation	NULL	eq_ref	PRIMARY	PRIMARY	4	pq_database.supplier.S_NATIONKEY	1	100.00	NULL
+2	SIMPLE	lineitem	NULL	ref	PRIMARY,LINEITEM_FK2	LINEITEM_FK2	8	pq_database.part.p_partkey,pq_database.partsupp.PS_SUPPKEY	2	100.00	NULL
 2	SIMPLE	orders	NULL	eq_ref	PRIMARY	PRIMARY	4	pq_database.lineitem.l_orderkey	1	100.00	NULL
 Warnings:
-Note	1003	/* select#1 */ select `pq_database`.`nation`.`N_NAME` AS `nation`,extract(year from `pq_database`.`orders`.`O_ORDERDATE`) AS `o_year`,sum(((`pq_database`.`lineitem`.`L_EXTENDEDPRICE` * (1 - `pq_database`.`lineitem`.`L_DISCOUNT`)) - (`pq_database`.`partsupp`.`PS_SUPPLYCOST` * `pq_database`.`lineitem`.`L_QUANTITY`))) AS `sum_profit` from `pq_database`.`part` join `pq_database`.`supplier` join `pq_database`.`lineitem` join `pq_database`.`partsupp` join `pq_database`.`orders` join `pq_database`.`nation` where ((`pq_database`.`supplier`.`S_NATIONKEY` = `pq_database`.`nation`.`n_nationkey`) and (`pq_database`.`orders`.`o_orderkey` = `pq_database`.`lineitem`.`l_orderkey`) and (`pq_database`.`partsupp`.`ps_partkey` = `pq_database`.`part`.`p_partkey`) and (`pq_database`.`lineitem`.`L_PARTKEY` = `pq_database`.`part`.`p_partkey`) and (`pq_database`.`supplier`.`s_suppkey` = `pq_database`.`partsupp`.`PS_SUPPKEY`) and (`pq_database`.`lineitem`.`L_SUPPKEY` = `pq_database`.`partsupp`.`PS_SUPPKEY`) and (`pq_database`.`part`.`P_NAME` like '%green%')) group by `profit`.`nation`,`profit`.`o_year` desc order by `profit`.`nation`,`o_year` desc
+Note	1003	/* select#1 */ select `pq_database`.`nation`.`N_NAME` AS `nation`,extract(year from `pq_database`.`orders`.`O_ORDERDATE`) AS `o_year`,sum(((`pq_database`.`lineitem`.`L_EXTENDEDPRICE` * (1 - `pq_database`.`lineitem`.`L_DISCOUNT`)) - (`pq_database`.`partsupp`.`PS_SUPPLYCOST` * `pq_database`.`lineitem`.`L_QUANTITY`))) AS `sum_profit` from `pq_database`.`part` join `pq_database`.`supplier` join `pq_database`.`lineitem` join `pq_database`.`partsupp` join `pq_database`.`orders` join `pq_database`.`nation` where ((`pq_database`.`nation`.`n_nationkey` = `pq_database`.`supplier`.`S_NATIONKEY`) and (`pq_database`.`orders`.`o_orderkey` = `pq_database`.`lineitem`.`l_orderkey`) and (`pq_database`.`partsupp`.`ps_partkey` = `pq_database`.`part`.`p_partkey`) and (`pq_database`.`lineitem`.`L_PARTKEY` = `pq_database`.`part`.`p_partkey`) and (`pq_database`.`supplier`.`s_suppkey` = `pq_database`.`partsupp`.`PS_SUPPKEY`) and (`pq_database`.`lineitem`.`L_SUPPKEY` = `pq_database`.`partsupp`.`PS_SUPPKEY`) and (`pq_database`.`part`.`P_NAME` like '%green%')) group by `profit`.`nation`,`profit`.`o_year` desc order by `profit`.`nation`,`o_year` desc
 select
 nation,
 o_year,
